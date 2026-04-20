@@ -1,0 +1,7 @@
+flask
+fpdf2
+matplotlib
+numpy
+shapely
+pyproj
+gunicorn
