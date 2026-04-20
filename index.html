@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEO-D1 | Analizzatore Geospeziale XML</title>
+    <link rel="stylesheet" href="index.css">
+
+    <!-- External Libraries (Removed Integrity for stability) -->
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.11.0/proj4.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="geospatial_utils_v2.js?v=2155"></script>
+</head>
+
+<body>
+
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-content">
+                <header>
+                    <h1><i class="fas fa-map-location-dot"></i> GEO-D1 Analyser</h1>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">Processore XML Catastale
+                        Professionale</p>
+                </header>
+
+                <section class="upload-section">
+                    <div id="dropZone" class="drop-zone">
+                        <i class="fas fa-file-code fa-3x" style="color: var(--primary); margin-bottom: 0.5rem;"></i>
+                        <p>Trascina il file XML qui</p>
+                        <p style="font-size: 0.7rem; opacity: 0.7;">oppure clicca per selezionare</p>
+                        <input type="file" id="fileInput" accept=".xml" style="display: none;">
+                    </div>
+                </section>
+
+
+                <section id="resultsPanel" class="data-panel" style="display: none;">
+                    <div class="card">
+                        <h3><i class="fas fa-user-tie"></i> Richiedente</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Soggetto</label>
+                                <span id="meta-soggetto">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Codice Fiscale</label>
+                                <span id="meta-cf">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" id="adminCard" style="display:none;">
+                        <h3><i class="fas fa-landmark"></i> Dati Amministrativi</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Tipo Domanda</label>
+                                <span id="meta-tipo">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Amministrazione</label>
+                                <span id="meta-amm">-</span>
+                            </div>
+                            <div class="info-item" id="concRow" style="display:none;">
+                                <label>Concessione Rif.</label>
+                                <span id="meta-conc">-</span>
+                            </div>
+                            <div class="info-item" id="comuniRow" style="display:none;">
+                                <label>Comuni Catastali</label>
+                                <span id="meta-comuni" style="font-size:0.75rem;">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <h3 style="margin: 0;"><i class="fas fa-layer-group"></i> Oggetti Rilevati</h3>
+                            <button id="toggleAllBtn" class="btn"
+                                style="padding: 2px 8px; font-size: 0.65rem; background: var(--border); border-radius: 4px;">
+                                <i class="fas fa-eye"></i> Tutti
+                            </button>
+                        </div>
+                        <div class="search-container">
+                            <input type="text" id="sidebarSearch" class="search-input" placeholder="Cerca punto o oggetto...">
+                            <i class="fas fa-search search-icon"></i>
+                        </div>
+                        <div id="objectList" class="object-list">
+                            <!-- Dynamic Items -->
+                        </div>
+                    </div>
+
+                    <div class="card" id="statsCard" style="display: none;">
+                        <h3><i class="fas fa-chart-simple"></i> Dettagli Geometria</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Perimetro</label>
+                                <span id="geo-perimeter">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Superficie</label>
+                                <span id="geo-area">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Stato</label>
+                                <span id="geo-status">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="sidebar-footer">
+                <button id="exportCsvBtn" class="btn"
+                    style="width: 100%; padding: 0.75rem; background: var(--primary); color: white; border-radius: 8px; display: none;">
+                    <i class="fas fa-file-csv"></i> Esporta CSV
+                </button>
+
+                <button id="verifyXmlBtn" class="btn"
+                    style="width: 100%; padding: 0.75rem; background: #8b0000; color: white; border-radius: 8px; margin-top: 0.5rem; display: none;">
+                    <i class="fas fa-file-pdf"></i> Verifica File XML (PDF)
+                </button>
+
+                <footer style="margin-top: 0.5rem; font-size: 0.7rem; color: var(--text-muted); text-align: center;">
+                    &copy; 2026 Nuvola Rossa - enrico.morinelli@gmail.com
+                </footer>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div id="map"></div>
+
+            <div class="map-overlay">
+                <div class="btn-group">
+                    <button id="mapGrid" class="btn active">Mappa</button>
+                    <button id="mapSat" class="btn">Satellite</button>
+                </div>
+                <div id="mapLayersPanel" style="
+                    margin-top: 8px;
+                    background: rgba(30,30,40,0.88);
+                    backdrop-filter: blur(8px);
+                    border-radius: 10px;
+                    padding: 10px 14px;
+                    font-size: 0.78rem;
+                    color: #e2e8f0;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+                    min-width: 210px;
+                ">
+                    <div style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--primary, #7c3aed); margin-bottom: 8px;">
+                        <i class="fas fa-layer-group"></i>&nbsp; Layer SID
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; cursor: pointer;">
+                        <input type="checkbox" id="sidDividenteToggle" style="width: auto; accent-color: #dc2626;">
+                        <label for="sidDividenteToggle" style="margin: 0; cursor: pointer;">Dividente Demaniale</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; cursor: pointer;">
+                        <input type="checkbox" id="sidCostaToggle" style="width: auto; accent-color: #06b6d4;">
+                        <label for="sidCostaToggle" style="margin: 0; cursor: pointer;">Dividente della Costa</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; cursor: pointer;">
+                        <input type="checkbox" id="sidConcToggle" style="width: auto; accent-color: #8b5cf6;">
+                        <label for="sidConcToggle" style="margin: 0; cursor: pointer;">Concessioni</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;">
+                        <input type="checkbox" id="sidAdmToggle" style="width: auto; accent-color: #f59e0b;">
+                        <label for="sidAdmToggle" style="margin: 0; cursor: pointer;">Amministrazioni</label>
+                    </div>
+                    <div style="padding: 5px 7px; background: rgba(255,251,235,0.1); border: 1px solid rgba(253,230,138,0.3); border-radius: 5px; font-size: 0.68rem; color: #fde68a;">
+                        <i class="fas fa-info-circle"></i> Dati limitati all'area di <strong>Casal Velino</strong>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // --- API Loader ---
+        function loadGoogleMaps() {
+            const key = "AIzaSyDfCPsN9FMueurdBHsjT2FvRlLVas0VIgU";
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&callback=initMap`;
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+        }
+
+
+
+        // --- Logging Helper ---
+        function log(msg, type = 'info') {
+            console.log(`[${type.toUpperCase()}] ${msg}`);
+        }
+
+        window.onerror = function (msg, url, line) {
+            log(`CRITICAL: ${msg} (${line})`, 'error');
+        };
+
+        // --- State ---
+        let map;
+        let boundaryManager;
+        let currentLayers = [];
+        let pointMarkers = new Map();
+        let objectLayers = new Map();
+        let parsedData = null;
+        let infoWindow;
+        let currentActiveKey = null;
+
+        const OPACITY_NORMAL = 0.3;
+        const OPACITY_SELECTED = 0.6;
+
+        // --- Marker Scaling Logic ---
+        // --- Marker Scaling Logic ---
+        function updateMarkerSizes() {
+            if (!map || pointMarkers.size === 0) return;
+            const zoom = map.getZoom();
+            const center = map.getCenter();
+            if (!center) return;
+
+            // Meters per pixel at current zoom and latitude
+            const metersPerPx = (156543.03392 * Math.cos(center.lat() * Math.PI / 180)) / Math.pow(2, zoom);
+
+            pointMarkers.forEach(marker => {
+                if (marker.setRadius && marker.baseRadius) {
+                    marker.setRadius(marker.baseRadius * metersPerPx);
+                }
+            });
+        }
+
+        // --- Init ---
+        function initMap() {
+            log("Inizializzazione Google Maps...");
+
+            if (typeof google === 'undefined') {
+                log("ERRORE: Google Maps non caricato!", 'error');
+                return;
+            }
+
+            try {
+                map = new google.maps.Map(document.getElementById('map'), {
+                    center: { lat: 41.9, lng: 12.5 },
+                    zoom: 6,
+                    mapTypeId: google.maps.MapTypeId.ROADMAP,
+                    mapTypeControl: false,
+                    streetViewControl: false,
+                    fullscreenControl: false,
+                    maxZoom: 25
+                });
+
+                infoWindow = new google.maps.InfoWindow();
+
+                document.getElementById('mapGrid').onclick = () => {
+                    map.setMapTypeId(google.maps.MapTypeId.ROADMAP);
+                    document.getElementById('mapGrid').classList.add('active');
+                    document.getElementById('mapSat').classList.remove('active');
+                };
+
+                document.getElementById('mapSat').onclick = () => {
+                    map.setMapTypeId(google.maps.MapTypeId.SATELLITE);
+                    document.getElementById('mapSat').classList.add('active');
+                    document.getElementById('mapGrid').classList.remove('active');
+                };
+                log("Mappa pronta.");
+
+                map.addListener('zoom_changed', updateMarkerSizes);
+
+                // Initialize Boundary Manager
+                boundaryManager = new BoundariesManager(map);
+                document.getElementById('sidDividenteToggle').onchange = () => boundaryManager.toggle('sid_dividente');
+                document.getElementById('sidCostaToggle').onchange = () => boundaryManager.toggle('sid_costa_new');
+                document.getElementById('sidConcToggle').onchange = () => boundaryManager.toggle('sid_concessioni');
+                document.getElementById('sidAdmToggle').onchange = () => boundaryManager.toggle('sid_amministrazioni');
+
+
+            } catch (e) {
+                log("Errore initMap: " + e.message, 'error');
+            }
+        }
+
+        // --- XML Parsing ---
+        function parseD1(xmlText) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+            if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+                console.error("XML Parsing Error:", xmlDoc.getElementsByTagName("parsererror")[0].innerText);
+                alert("Errore nel parsing del file XML. Controlla la console.");
+                return null;
+            }
+
+            const soggettoNode = xmlDoc.querySelector('Soggetto_Non_Fisico Denominazione') ||
+                xmlDoc.querySelector('Soggetto_Non_Fisico Denominazione_Abbreviata');
+            const soggetto = soggettoNode?.textContent || "Sconosciuto";
+
+            const cfNode = xmlDoc.querySelector('Soggetto_Non_Fisico Codice_Fiscale') ||
+                xmlDoc.querySelector('Rappresentante_Legale Codice_Fiscale');
+            const cf = cfNode?.textContent || "-";
+
+            // Extract Official surface/volume info from Elaborato rows
+            const surfaceInfo = new Map();
+            const elaborateRows = xmlDoc.querySelectorAll('Riga_Elaborato');
+            elaborateRows.forEach(e => {
+                const pref = e.querySelector('Prefisso_Oggetto')?.textContent || "";
+                const id = e.querySelector('Identificativo_Oggetto')?.textContent || "";
+                const sup = e.querySelector('Superficie')?.textContent || "";
+                const vol = e.querySelector('Volumetria')?.textContent || "";
+                if (pref || id) {
+                    surfaceInfo.set(`${pref}${id}`, { 
+                        superficie: sup ? parseFloat(sup.replace(',', '.')) : null,
+                        volumetria: vol ? parseFloat(vol.replace(',', '.')) : null
+                    });
+                }
+            });
+
+            const points = [];
+            const objects = new Map();
+
+            const righe = xmlDoc.querySelectorAll('Riga_Rilievo');
+            righe.forEach(r => {
+                const id = r.querySelector('Identificativo_Punto')?.textContent;
+                const pref = r.querySelector('Prefisso')?.textContent;
+                const objId = r.querySelector('Identificativo')?.textContent;
+                const coordN = r.querySelector('Coordinata_Nord')?.textContent || "";
+                const coordE = r.querySelector('Coordinata_Est')?.textContent || "";
+
+                const n = parseFloat(coordN.replace(',', '.'));
+                const e = parseFloat(coordE.replace(',', '.'));
+
+                if (!isNaN(n) && !isNaN(e)) {
+                    const coords = convertToWgs84(n, e, 'peninsula');
+                    if (coords) {
+                        const { lat, lng } = coords;
+                        const point = { id, pref, objId, n, e, lat, lng };
+                        points.push(point);
+
+                        const key = `${pref}${objId}`;
+                        if (!objects.has(key)) {
+                            const info = surfaceInfo.get(key) || { superficie: null, volumetria: null };
+                            objects.set(key, {
+                                points: [],
+                                officialArea: info.superficie,
+                                officialVolume: info.volumetria
+                            });
+                        }
+                        objects.get(key).points.push(point);
+                    }
+                }
+            });
+
+            // --- Tipo domanda ---
+            const rootTag = xmlDoc.documentElement.tagName;
+            const tipoDomanda = rootTag.replace('Domanda_', '') || '-';
+
+            // --- Dati generali ---
+            const dg = xmlDoc.querySelector('Dati_Generali_Rilascio') ||
+                       xmlDoc.querySelector('Dati_Generali_Variazione');
+            const ammEl = dg?.querySelector('Amministrazione_Competente');
+            const tipoAmmEl = dg?.querySelector('Tipo_Amministrazione_Competente');
+            const numConcEl = dg?.querySelector('Numero_Concessione_Rif');
+            const annoConcEl = dg?.querySelector('Anno_Concessione_Rif');
+
+            const ammCod = ammEl?.textContent?.trim() || '-';
+            const tipoAmm = tipoAmmEl?.textContent?.trim() || '';
+            const ammDisplay = tipoAmm ? `${tipoAmm} (${ammCod})` : ammCod;
+            const numConc = numConcEl?.textContent?.trim() || '';
+            const annoConc = annoConcEl?.textContent?.trim() || '';
+            const concDisplay = (numConc && annoConc) ? `${numConc}/${annoConc}` : null;
+
+            // --- Comuni catastali unici ---
+            const comuniSet = new Set();
+            xmlDoc.querySelectorAll('Riferimento_Catastale Codice_Comune').forEach(el => {
+                if (el.textContent.trim()) comuniSet.add(el.textContent.trim());
+            });
+            const comuni = [...comuniSet];
+
+            return { metadata: { soggetto, cf, tipoDomanda, ammDisplay, concDisplay, comuni }, objects };
+        }
+
+        // --- Geometry Engine ---
+        function calculateStats(points, officialArea = null, officialVolume = null) {
+            if (!points || points.length === 0) return null;
+
+            if (points.length === 1) {
+                return { perimeter: "0.00 m", area: "0.00 m²", status: "PUNTO", isClosed: false, officialArea, officialVolume };
+            }
+
+            let perimeter = 0;
+            for (let i = 0; i < points.length - 1; i++) {
+                perimeter += Math.sqrt(Math.pow(points[i + 1].n - points[i].n, 2) + Math.pow(points[i + 1].e - points[i].e, 2));
+            }
+
+            if (points.length === 2) {
+                return { perimeter: perimeter.toFixed(2) + " m", area: "0.00 m²", status: "SEGMENTO", isClosed: false, officialArea, officialVolume };
+            }
+
+            const first = points[0];
+            const last = points[points.length - 1];
+            const distClosure = Math.sqrt(Math.pow(first.n - last.n, 2) + Math.pow(first.e - last.e, 2));
+            const isClosed = distClosure < 0.1;
+
+            let area = 0;
+            if (isClosed && points.length > 2) {
+                for (let i = 0; i < points.length - 1; i++) {
+                    area += (points[i].e * points[i + 1].n) - (points[i + 1].e * points[i].n);
+                }
+                area = Math.abs(area) / 2;
+            }
+
+            return {
+                perimeter: perimeter.toFixed(2) + " m",
+                area: area > 0 ? area.toFixed(2) + " m²" : "N/D",
+                status: isClosed ? "CHIUSA" : "APERTA",
+                isClosed,
+                officialArea,
+                officialVolume
+            };
+        }
+
+        // --- Helpers ---
+        function getPointHtml(p, key, color) {
+            return `
+                <div style="font-family: 'Inter', sans-serif; min-width: 200px; padding: 4px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; border-bottom: 2px solid ${color}; padding-bottom: 6px;">
+                        <div style="background: ${color}; color: white; border-radius: 4px; padding: 2px 6px; font-weight: 800; font-size: 0.7rem;">PUNTO</div>
+                        <div style="font-weight: 700; color: var(--text); font-size: 0.9rem;">${p.id}</div>
+                        <div style="margin-left: auto; font-size: 0.7rem; color: var(--text-muted);">Oggetto ${key}</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="background: #f1f5f9; padding: 6px; border-radius: 6px;">
+                            <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Gauss-Boaga (N, E)</div>
+                            <div style="font-weight: 600; font-size: 0.8rem; font-family: monospace;">${p.n.toFixed(2)}, ${p.e.toFixed(2)}</div>
+                        </div>
+                        <div style="background: #eff6ff; padding: 6px; border-radius: 6px;">
+                            <div style="font-size: 0.65rem; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">WGS84 (Lat, Lng)</div>
+                            <div style="font-weight: 600; font-size: 0.8rem; font-family: monospace;">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Rendering ---
+        function renderResults(data) {
+            document.getElementById('resultsPanel').style.display = 'block';
+            document.getElementById('meta-soggetto').textContent = data.metadata.soggetto;
+            document.getElementById('meta-cf').textContent = data.metadata.cf;
+
+            // Admin card
+            const m = data.metadata;
+            document.getElementById('meta-tipo').textContent = m.tipoDomanda || '-';
+            document.getElementById('meta-amm').textContent = m.ammDisplay || '-';
+            if (m.concDisplay) {
+                document.getElementById('meta-conc').textContent = m.concDisplay;
+                document.getElementById('concRow').style.display = '';
+            }
+            if (m.comuni && m.comuni.length > 0) {
+                document.getElementById('meta-comuni').textContent = m.comuni.join(', ');
+                document.getElementById('comuniRow').style.display = '';
+            }
+            document.getElementById('adminCard').style.display = 'block';
+
+            const list = document.getElementById('objectList');
+            list.innerHTML = '';
+
+            currentLayers.forEach(l => l.setMap(null));
+            currentLayers = [];
+            pointMarkers.clear();
+            objectLayers.clear();
+
+            const bounds = new google.maps.LatLngBounds();
+            const objKeys = Array.from(data.objects.keys());
+
+            data.objects.forEach((objData, key) => {
+                const points = objData.points;
+                const stats = calculateStats(points, objData.officialArea, objData.officialVolume) || { status: 'ERRORE', perimeter: '-', area: '-', isClosed: false };
+                const color = `hsl(${(objKeys.indexOf(key) * 137) % 360}, 100%, 55%)`;
+                const pastelFill = `hsl(${(objKeys.indexOf(key) * 137) % 360}, 40%, 85%)`;
+
+                const statusClass = stats.status === "CHIUSA" ? "status-closed" : (stats.status === "APERTA" ? "status-open" : (stats.status === "SEGMENTO" ? "status-segment" : "status-point"));
+
+                const item = document.createElement('div');
+                item.className = 'object-item';
+
+                let pointsHtml = '<div class="point-list">';
+                points.forEach(p => {
+                    const pKey = `${key}-${p.id}`;
+                    pointsHtml += `
+                        <div class="point-item" data-point-key="${pKey}">
+                            <div class="point-id">Punto ${p.id}</div>
+                            <div class="point-coords">
+                                <div class="coord-group">
+                                    <span class="coord-label">Gauss-Boaga (N, E)</span>
+                                    <span>${p.n.toFixed(2)}, ${p.e.toFixed(2)}</span>
+                                </div>
+                                <div class="coord-group">
+                                    <span class="coord-label">WGS84 (Lat, Lng)</span>
+                                    <span>${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                pointsHtml += '</div>';
+
+                let statsHtml = '';
+                const offAreaText = stats.officialArea !== null ? `${stats.officialArea.toFixed(2)} m²` : "N/D";
+                const offVolText = stats.officialVolume !== null ? `${stats.officialVolume.toFixed(2)} m³` : "N/D";
+
+                if (points.length === 2) {
+                    statsHtml = `<div class="obj-stats"><span>Lunghezza:</span><span style="text-align: right">${stats.perimeter}</span></div>`;
+                } else if (points.length > 2) {
+                    statsHtml = `
+                    <div class="obj-stats" style="grid-template-columns: 1fr; gap: 0.25rem;">
+                        <div style="display: flex; justify-content: space-between;"><span>Lunghezza:</span><span>${stats.perimeter}</span></div>
+                        <div style="display: flex; justify-content: space-between;"><span>Area (Calc):</span><span>${stats.area}</span></div>
+                        <div style="display: flex; justify-content: space-between; color: var(--accent); font-weight: bold;"><span>Area (Ufficiale):</span><span>${offAreaText}</span></div>
+                    </div>`;
+                }
+
+                item.innerHTML = `
+                <div class="obj-header">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <button class="visibility-toggle" title="Mostra/Nascondi sulla mappa"><i class="fas fa-eye"></i></button>
+                        <span class="obj-id">${key}</span>
+                    </div>
+                    <span class="status-badge ${statusClass}">${stats.status}</span>
+                </div>
+                <div style="font-size: 0.75rem; margin-top: 0.25rem; opacity: 0.8;">${points.length} punti</div>
+                ${statsHtml}${pointsHtml}
+                `;
+                item.style.borderLeft = `4px solid ${color}`;
+
+                const latlngs = points.map(p => ({ lat: p.lat, lng: p.lng }));
+                let mainLayer;
+                let objGroup = [];
+
+                if (points.length === 1) {
+                    mainLayer = new google.maps.Circle({
+                        center: latlngs[0],
+                        radius: 1, // Will be updated by updateMarkerSizes
+                        strokeColor: '#FFFFFF',
+                        strokeOpacity: 0.8,
+                        strokeWeight: 1.5,
+                        fillColor: color,
+                        fillOpacity: OPACITY_NORMAL,
+                        map: map
+                    });
+                    mainLayer.baseRadius = 8; // Visual radius in pixels
+                    const pKey = `${key}-${points[0].id}`;
+                    pointMarkers.set(pKey, mainLayer);
+
+                    mainLayer.addListener('click', (e) => {
+                        infoWindow.setContent(getPointHtml(points[0], key, color));
+                        infoWindow.setPosition(e.latLng);
+                        infoWindow.open(map);
+                        onMarkerClick(pKey);
+                    });
+                    objGroup.push(mainLayer);
+                } else {
+                    if (stats.isClosed && points.length > 2) {
+                        mainLayer = new google.maps.Polygon({
+                            paths: latlngs,
+                            strokeColor: color,
+                            strokeOpacity: 0.8,
+                            strokeWeight: 2,
+                            fillColor: pastelFill,
+                            fillOpacity: OPACITY_NORMAL,
+                            map: map
+                        });
+                    } else {
+                        mainLayer = new google.maps.Polyline({
+                            path: latlngs,
+                            strokeColor: color,
+                            strokeOpacity: 0.8,
+                            strokeWeight: 4,
+                            map: map
+                        });
+                    }
+                    objGroup.push(mainLayer);
+
+                    points.forEach(p => {
+                        const pMarker = new google.maps.Circle({
+                            center: { lat: p.lat, lng: p.lng },
+                            radius: 1,
+                            strokeColor: '#FFFFFF',
+                            strokeOpacity: 0.8,
+                            strokeWeight: 1.5,
+                            fillColor: color,
+                            fillOpacity: OPACITY_NORMAL,
+                            map: map
+                        });
+                        pMarker.baseRadius = 4.5; // Visual radius in pixels
+                        const pKey = `${key}-${p.id}`;
+                        pointMarkers.set(pKey, pMarker);
+                        objGroup.push(pMarker);
+
+                        pMarker.addListener('click', (e) => {
+                            infoWindow.setContent(getPointHtml(p, key, color));
+                            infoWindow.setPosition(e.latLng);
+                            infoWindow.open(map);
+                            onMarkerClick(pKey);
+                        });
+                    });
+                }
+                objectLayers.set(key, objGroup);
+                currentLayers.push(...objGroup);
+
+                const toggleBtn = item.querySelector('.visibility-toggle');
+                toggleBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    const isHidden = toggleBtn.classList.toggle('hidden');
+                    const layers = objectLayers.get(key);
+                    if (isHidden) {
+                        layers.forEach(l => l.setMap(null));
+                        toggleBtn.querySelector('i').className = 'fas fa-eye-slash';
+                        item.style.opacity = '0.6';
+
+                        // Sync UI: If this was the active object, close info window and hide stats card
+                        if (currentActiveKey === key) {
+                            infoWindow.close();
+                            document.getElementById('statsCard').style.display = 'none';
+                            item.classList.remove('active');
+                            currentActiveKey = null;
+                        }
+                    } else {
+                        layers.forEach(l => l.setMap(map));
+                        toggleBtn.querySelector('i').className = 'fas fa-eye';
+                        item.style.opacity = '1';
+                    }
+                };
+
+                mainLayer.addListener('click', (e) => {
+                    infoWindow.setContent(`
+                        <div style="font-family: Segoe UI, sans-serif; min-width: 150px;">
+                            <div style="font-weight: bold; color: ${color}; border-bottom: 2px solid ${color}; margin-bottom: 5px;">Oggetto ${key}</div>
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
+                                <tr><td>Perimetro:</td><td style="text-align: right">${stats.perimeter}</td></tr>
+                                <tr><td>Area (Calc):</td><td style="text-align: right">${stats.area}</td></tr>
+                                <tr style="color: var(--accent); font-weight: bold;"><td>Area (Uff):</td><td style="text-align: right">${offAreaText}</td></tr>
+                                <tr><td>Volumetria:</td><td style="text-align: right">${offVolText}</td></tr>
+                            </table>
+                        </div>
+                    `);
+                    infoWindow.setPosition(e.latLng);
+                    infoWindow.open(map);
+                    currentActiveKey = key;
+                    onMarkerClick();
+                });
+
+                item.querySelectorAll('.point-item').forEach(pEl => {
+                    pEl.onclick = (e) => {
+                        e.stopPropagation();
+                        const pKey = pEl.getAttribute('data-point-key');
+                        const marker = pointMarkers.get(pKey);
+                        
+                        // Check if object is hidden and show it if necessary
+                        if (toggleBtn.classList.contains('hidden')) {
+                            toggleBtn.click();
+                        }
+
+                        if (marker) {
+                            // Extract point data from the pointId in pKey
+                            const pointId = pKey.split('-').pop();
+                            const pData = points.find(pt => pt.id === pointId);
+
+                            if (pData) {
+                                infoWindow.setContent(getPointHtml(pData, key, color));
+                                infoWindow.setPosition(marker.center || marker.getCenter?.());
+                                infoWindow.open(map);
+                            }
+
+                            map.setCenter(marker.center || marker.getCenter?.() || { lat: 0, lng: 0 });
+                            map.setZoom(20);
+                            onMarkerClick(pKey);
+                        }
+                    };
+                });
+
+                const onMarkerClick = (pKey = null) => {
+                    currentActiveKey = key;
+                    
+                    // Update opacities for all objects
+                    objectLayers.forEach((layers, objKey) => {
+                        const isCurrent = (objKey === key);
+                        layers.forEach(layer => {
+                            if (layer.setOptions && (layer instanceof google.maps.Polygon || layer instanceof google.maps.Circle)) {
+                                layer.setOptions({ fillOpacity: isCurrent ? OPACITY_SELECTED : OPACITY_NORMAL });
+                            }
+                        });
+                    });
+
+                    document.getElementById('statsCard').style.display = 'block';
+                    document.getElementById('geo-perimeter').textContent = stats.perimeter;
+                    document.getElementById('geo-area').innerHTML = `Calc: ${stats.area}<br><span style="color: var(--accent); font-weight: bold;">Uff: ${offAreaText}</span>`;
+                    document.getElementById('geo-status').textContent = stats.status;
+                    document.getElementById('geo-status').style.color = stats.isClosed ? 'var(--accent)' : 'var(--danger)';
+
+                    document.querySelectorAll('.object-item').forEach(el => el.classList.remove('active'));
+                    item.classList.add('active');
+                    item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    if (pKey) {
+                        const pEl = item.querySelector(`[data-point-key="${pKey}"]`);
+                        if (pEl) {
+                            pEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            pEl.style.background = 'rgba(255,255,255,0.4)';
+                            setTimeout(() => pEl.style.background = '', 2000);
+                        }
+                    }
+                };
+
+                item.onclick = (e) => {
+                    if (item.classList.contains('active') && !e.target.closest('.point-item')) {
+                        item.classList.remove('active');
+                        return;
+                    }
+                    document.querySelectorAll('.object-item').forEach(el => el.classList.remove('active'));
+                    item.classList.add('active');
+
+                    const b = new google.maps.LatLngBounds();
+                    latlngs.forEach(ll => b.extend(ll));
+                    map.fitBounds(b);
+
+                    document.getElementById('statsCard').style.display = 'block';
+                    document.getElementById('geo-perimeter').textContent = stats.perimeter;
+                    document.getElementById('geo-area').innerHTML = `Calc: ${stats.area}<br><span style="color: var(--accent); font-weight: bold;">Uff: ${offAreaText}</span>`;
+                    document.getElementById('geo-status').textContent = stats.status;
+                };
+
+                latlngs.forEach(ll => bounds.extend(ll));
+                list.appendChild(item);
+            });
+
+            if (currentLayers.length > 0) {
+                map.fitBounds(bounds);
+                if (boundaryManager) boundaryManager.setPointsBounds(bounds);
+
+                updateMarkerSizes(); // Apply initial scaling
+                document.getElementById('exportCsvBtn').style.display = 'block';
+                document.getElementById('toggleAllBtn').style.display = 'block';
+            }
+        }
+
+        // --- Master Toggle ---
+        document.getElementById('toggleAllBtn').onclick = () => {
+            const btn = document.getElementById('toggleAllBtn');
+            const icon = btn.querySelector('i');
+            const isHiding = icon.classList.contains('fa-eye');
+
+            document.querySelectorAll('.visibility-toggle').forEach(toggle => {
+                const hidden = toggle.classList.contains('hidden');
+                if ((isHiding && !hidden) || (!isHiding && hidden)) {
+                    toggle.click();
+                }
+            });
+
+            if (isHiding) {
+                icon.className = 'fas fa-eye-slash';
+                btn.style.background = 'var(--danger)';
+                btn.style.color = 'white';
+            } else {
+                icon.className = 'fas fa-eye';
+                btn.style.background = 'var(--border)';
+                btn.style.color = 'inherit';
+            }
+        };
+
+        // --- CSV Export ---
+        document.getElementById('exportCsvBtn').onclick = () => {
+            if (!parsedData) return;
+            let csvContent = "Oggetto;Punto;N;E;Latitudine;Longitudine\n";
+            parsedData.objects.forEach((points, key) => {
+                points.forEach(p => {
+                    csvContent += `${key};${p.id};${p.n.toFixed(2)};${p.e.toFixed(2)};${p.lat.toFixed(6)};${p.lng.toFixed(6)}\n`;
+                });
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=ISO-8859-1;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `export_rilievo_${new Date().getTime()}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            log("File CSV generato.", 'success');
+        };
+
+        // --- Events ---
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.onclick = () => fileInput.click();
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); };
+        dropZone.ondragleave = () => dropZone.classList.remove('drag-over');
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            handleFiles(e.dataTransfer.files);
+        };
+        fileInput.onchange = (e) => handleFiles(e.target.files);
+
+        function handleFiles(files) {
+            if (files.length === 0) return;
+            const file = files[0];
+            window.currentFile = file; // Save for verification
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    window.lastXmlContent = e.target.result;
+                    const data = parseD1(window.lastXmlContent);
+                    if (data) {
+                        parsedData = data;
+                        renderResults(data);
+                        document.getElementById('verifyXmlBtn').style.display = 'block';
+                        
+                        // Fetch intersections
+                        const formData = new FormData();
+                        formData.append('file', window.currentFile);
+                        fetch('/api/analyze', { method: 'POST', body: formData })
+                            .then(res => res.json())
+                            .then(json => drawIntersections(json.fuoriuscite))
+                            .catch(err => console.error("Error fetching intersections:", err));
+                    }
+                } catch (err) { log("Errore: " + err.message, 'error'); }
+            };
+            reader.readAsText(file, "ISO-8859-1");
+        }
+
+        // --- Intersections and Outbound Areas Rendering ---
+        function drawIntersections(fuoriuscite) {
+            if (!fuoriuscite || !map) return;
+            console.log("Drawing intersections and outside areas:", fuoriuscite);
+            fuoriuscite.forEach(f => {
+                // Plot intersecting points
+                if (f.intersezioni_json && f.intersezioni_json.length > 0) {
+                    f.intersezioni_json.forEach(pt => {
+                        const coords = convertToWgs84(pt.n, pt.e, 'peninsula');
+                        if (coords) {
+                            const marker = new google.maps.Marker({
+                                position: { lat: coords.lat, lng: coords.lng },
+                                map: map,
+                                icon: {
+                                    url: 'data:image/svg+xml;charset=UTF-8,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"%3E%3Cpath fill="%23dc2626" d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM175 175c9.4-9.4 24.6-9.4 33.9 0l47 47 47-47c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9l-47 47 47 47c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0l-47-47-47 47c-9.4 9.4-24.6 9.4-33.9 0s-9.4-24.6 0-33.9l47-47-47-47c-9.4-9.4-9.4-24.6 0-33.9z"/%3E%3C/svg%3E',
+                                    scaledSize: new google.maps.Size(24, 24),
+                                    anchor: new google.maps.Point(12, 12)
+                                },
+                                title: `Intersezione Oggetto ${f.oggetto}`,
+                                zIndex: 1000
+                            });
+                            
+                            marker.addListener('click', () => {
+                                infoWindow.setContent(`
+                                    <div style="font-family: 'Inter', sans-serif; padding: 5px;">
+                                        <div style="color: #dc2626; font-weight: bold; margin-bottom: 5px; border-bottom: 2px solid #dc2626;">
+                                            <i class="fas fa-exclamation-triangle"></i> Punto di Intersezione
+                                        </div>
+                                        <div style="font-size: 0.8rem; margin-top: 5px;">
+                                            <b>Oggetto:</b> ${f.oggetto}<br><br>
+                                            <span style="color: #666; font-size: 0.75rem;">Coordinate N, E (Gauss-Boaga)</span><br>
+                                            <b style="font-family: monospace;">N:</b> ${pt.n}<br>
+                                            <b style="font-family: monospace;">E:</b> ${pt.e}
+                                        </div>
+                                    </div>
+                                `);
+                                infoWindow.setPosition(marker.getPosition());
+                                infoWindow.open(map);
+                            });
+                            
+                            currentLayers.push(marker);
+                        }
+                    });
+                }
+
+                // Plot protruding polygons
+                if (f.fuori_polygons && f.fuori_polygons.length > 0) {
+                    f.fuori_polygons.forEach(polygonCoords => {
+                        const paths = polygonCoords.map(pt => {
+                            const wgsPt = convertToWgs84(pt.n, pt.e, 'peninsula');
+                            return wgsPt ? { lat: wgsPt.lat, lng: wgsPt.lng } : null;
+                        }).filter(pt => pt !== null);
+
+                        if (paths.length >= 3) {
+                            const darkRedPolygon = new google.maps.Polygon({
+                                paths: paths,
+                                strokeColor: '#8B0000',
+                                strokeOpacity: 0.9,
+                                strokeWeight: 2,
+                                fillColor: '#8B0000',
+                                fillOpacity: 0.8,
+                                map: map,
+                                zIndex: 500
+                            });
+
+                            darkRedPolygon.addListener('click', (e) => {
+                                infoWindow.setContent(`
+                                    <div style="font-family: 'Inter', sans-serif; padding: 5px;">
+                                        <div style="color: #8B0000; font-weight: bold; margin-bottom: 5px; border-bottom: 2px solid #8B0000;">
+                                            <i class="fas fa-chart-area"></i> Area Fuoriuscita
+                                        </div>
+                                        <div style="font-size: 0.8rem; margin-top: 5px;">
+                                            <b>Oggetto:</b> ${f.oggetto}<br>
+                                            <b>Area (circa):</b> ${f.area_out.toFixed(2)} m²
+                                        </div>
+                                    </div>
+                                `);
+                                infoWindow.setPosition(e.latLng);
+                                infoWindow.open(map);
+                            });
+
+                            currentLayers.push(darkRedPolygon);
+                        }
+                    });
+                }
+            });
+        }
+
+        // --- Search Filter ---
+        document.getElementById('sidebarSearch').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const objects = document.querySelectorAll('.object-item');
+            
+            objects.forEach(obj => {
+                const objId = obj.querySelector('.obj-id').textContent.toLowerCase();
+                const points = Array.from(obj.querySelectorAll('.point-id')).map(p => p.textContent.toLowerCase());
+                
+                const matchObj = objId.includes(query);
+                const matchPoint = points.some(p => p.includes(query));
+                
+                if (matchObj || matchPoint) {
+                    obj.style.display = 'block';
+                } else {
+                    obj.style.display = 'none';
+                }
+            });
+        });
+
+        // --- PDF Verification Button ---
+        document.getElementById('verifyXmlBtn').onclick = async () => {
+            if (!window.currentFile) {
+                log("Nessun file selezionato per la verifica.", 'error');
+                return;
+            }
+
+            const btn = document.getElementById('verifyXmlBtn');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generazione Report...';
+            btn.disabled = true;
+
+            try {
+                log("Inviando richiesta di verifica al server...", 'info');
+                const formData = new FormData();
+                formData.append('file', window.currentFile);
+
+                const response = await fetch('/verify', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    log("Risposta ricevuta, elaborazione PDF...", 'info');
+                    const blob = await response.blob();
+                    
+                    if (blob.size === 0) {
+                        throw new Error("Il server ha restituito un file vuoto.");
+                    }
+
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = window.currentFile.name.replace('.xml', '_report.pdf');
+                    
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    // Delay revocation to ensure browser starts download
+                    setTimeout(() => {
+                        if (document.body.contains(a)) document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                    }, 2000);
+
+                    log(`Report PDF generato con successo. <a href="${url}" download="${a.download}" style="color: var(--primary); text-decoration: underline;">Clicca qui se il download non è iniziato.</a>`, 'success');
+                } else {
+                    const errorMsg = await response.text();
+                    log("Errore server: " + errorMsg, 'error');
+                    alert("Errore nella generazione del report: " + errorMsg);
+                }
+            } catch (err) {
+                log("Errore tecnico: " + err.message, 'error');
+                console.error("PDF Export Error:", err);
+                alert("Errore durante il download: " + err.message);
+            } finally {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }
+        };
+
+        // initMap(); // Called by Google Maps callback
+        loadGoogleMaps();
+    </script>
+
+</body>
+
+</html>
