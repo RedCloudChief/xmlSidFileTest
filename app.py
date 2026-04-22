@@ -7,11 +7,17 @@ app = Flask(__name__, static_folder='.')
 
 @app.route('/')
 def index():
-    return send_from_directory('.', 'index.html')
+    resp = send_from_directory('.', 'index.html')
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    return resp
 
 @app.route('/<path:path>')
 def serve_static(path):
-    return send_from_directory('.', path)
+    resp = send_from_directory('.', path)
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    return resp
 
 @app.route('/verify', methods=['POST'])
 def verify():

@@ -66,7 +66,7 @@ def load_admin_map():
 
 
 
-# ─── Gauss-Boaga → WGS84 ─────────────────────────────────────────────────────
+# --- Gauss-Boaga -> WGS84 -----------------------------------------------------
 
 def gb_to_wgs84(n, e):
     """Convert Gauss-Boaga (N, E) to (lat, lon) WGS84."""
@@ -106,7 +106,7 @@ def gb_to_wgs84(n, e):
     return math.degrees(lat), math.degrees(lon)
 
 
-# ─── Static map snapshot ─────────────────────────────────────────────────────
+# --- Static map snapshot -----------------------------------------------------
 
 GOOGLE_API_KEY = "AIzaSyDfCPsN9FMueurdBHsjT2FvRlLVas0VIgU"  # kept for future use
 
@@ -154,6 +154,39 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
             spine.set_edgecolor('#cccccc')
 
         all_xs, all_ys = [], []
+
+        for key, obj in sorted_objs:
+            pts = obj.get('points', [])
+            for p in pts:
+                all_xs.append(p[0])
+                all_ys.append(p[1])
+
+        if not all_xs:
+            plt.close(fig)
+            return None, None
+
+        xmin, xmax = min(all_xs), max(all_xs)
+        ymin, ymax = min(all_ys), max(all_ys)
+        dx, dy = xmax - xmin, ymax - ymin
+
+        if dx > 50000 or dy > 50000:
+            ax.set_facecolor('#fff1f2')
+            ax.axis('off')
+            ax.text(0.5, 0.5, "ANOMALIA GEOMETRICA BLOCCANTE\n\nImpossibile stampare la planimetria.\nIl rilievo presenta un'escursione anomala (> 50 km).\n\nQuesto rimpicciolirebbe la mappa a dimensioni invisibili.\nIl problema è tipicamente causato da coordinate\nassenti o nulle (es. N=0, E=0) o errori di battitura.\n\nSi prega di ispezionare con attenzione il file XML per\nandare a correggere le coordinate errate.",
+                    transform=ax.transAxes, ha='center', va='center', fontsize=11, color='#b91c1c', fontweight='bold', multialignment='center')
+            chosen_S = "ERRORE"
+            
+            fig.tight_layout(pad=1.5)
+            fd, tmp = tempfile.mkstemp(suffix='.png')
+            os.close(fd)
+            fig.savefig(tmp, dpi=dpi, bbox_inches='tight', facecolor=fig.get_facecolor())
+            plt.close(fig)
+            with open(tmp, 'rb') as f:
+                data_bytes = f.read()
+            try: os.remove(tmp)
+            except Exception: pass
+            return data_bytes, chosen_S
+
         legend_handles = []
         seen_prefs = set()
 
@@ -164,8 +197,6 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
 
             xs = [p[0] for p in pts]
             ys = [p[1] for p in pts]
-            all_xs.extend(xs)
-            all_ys.extend(ys)
 
             stroke, fill, lw = OBJ_COLORS.get(obj['pref'], DEFAULT_COLOR)
 
@@ -197,7 +228,7 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
                     mpatches.Patch(facecolor=fill, edgecolor=stroke,
                                    linewidth=lw, label=obj['pref'], alpha=0.75))
 
-        # ── Draw Highlights for Extruded Areas (Fuoriuscite) ──
+        # -- Draw Highlights for Extruded Areas (Fuoriuscite) --
         if fuoriuscite:
             seen_ext = False
             for f in fuoriuscite:
@@ -245,15 +276,9 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
                     mpatches.Patch(facecolor='#FF0000', edgecolor='#B71C1C',
                                    linewidth=1.5, label='Fuori Limite (RED 80%)', alpha=0.8))
 
-        if not all_xs:
-            plt.close(fig)
-            return None, None
-
-        # ── Geographic Scaling Logic ──
-        xmin, xmax = min(all_xs), max(all_xs)
-        ymin, ymax = min(all_ys), max(all_ys)
+        # -- Geographic Scaling Logic --
+        # xmin, xmax, ymin, ymax already calculated above
         cx, cy = (xmin + xmax) / 2, (ymin + ymax) / 2
-        dx, dy = xmax - xmin, ymax - ymin
         
         # We want the objects to fit in the specified viewport (W x H) in the PDF.
         # Minimal safety margin (7%) to maximize representation area as requested.
@@ -299,8 +324,8 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
         xpad = vw * 0.08
         ypad = vh * 0.08
 
-        ax.set_xlabel('E — Gauss-Boaga Roma40 (m)', fontsize=6, color='#666')
-        ax.set_ylabel('N — Gauss-Boaga Roma40 (m)', fontsize=6, color='#666')
+        ax.set_xlabel('E -- Gauss-Boaga Roma40 (m)', fontsize=6, color='#666')
+        ax.set_ylabel('N -- Gauss-Boaga Roma40 (m)', fontsize=6, color='#666')
         ax.grid(True, color='#ccddee', linewidth=0.5, linestyle='--', zorder=1)
         ax.set_title('Planimetria Rilievo', fontsize=10, fontweight='bold',
                      color='#1a1a3e', pad=10)
@@ -311,23 +336,31 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
                       facecolor='white', edgecolor='#aaaaaa',
                       framealpha=0.90, loc='lower right')
 
-        # ── Scale Bar Logic ──
-        # Gauss-Boaga is in meters. We compute a "nice" unit based on map width.
-        map_w = (xmax - xmin)
-        units = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
-        # Choose a unit that is ~15-25% of the map width
-        bar_len = 100
-        for u in units:
-            if u > map_w * 0.15:
-                bar_len = u
-                break
+        # -- Scale Bar Logic --
+        # Gauss-Boaga is in meters. We compute a "nice" unit based on map viewport width (vw).
+        # We want the scale bar to occupy roughly 15-25% of the map viewport.
+        import math
+        ideal_target = vw * 0.20
+        if ideal_target < 1: 
+            ideal_target = 10
+            
+        magnitude = 10 ** math.floor(math.log10(ideal_target))
+        val = ideal_target / magnitude
+        if val >= 5:
+            bar_len = 5 * magnitude
+        elif val >= 2:
+            bar_len = 2 * magnitude
+        else:
+            bar_len = 1 * magnitude
+            
+        bar_len = int(bar_len) if bar_len >= 1 else bar_len
         
         # Position in bottom-left corner with some padding from the spines
         # Use viewport relative positioning
         sb_x = (cx - vw/2) + vw * 0.05
         sb_y = (cy - vh/2) + vh * 0.05
         
-        # ── Draw Multi-Segment Scale Bar ──
+        # -- Draw Multi-Segment Scale Bar --
         # Main Line
         ax.plot([sb_x, sb_x + bar_len], [sb_y, sb_y], color='black', linewidth=2, zorder=20)
         
@@ -382,7 +415,7 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
 
 
 
-# ─── Color constants matching the reference PDFs ────────────────────────────
+# --- Color constants matching the reference PDFs ----------------------------
 HDR_ORANGE   = (227, 207, 156)  # Khaki/Tan for ALL table headers (#E3CF9C)
 HDR_TEXT     = (0, 0, 128)      # Dark blue bold text in headers
 ROW_YELLOW   = (255, 255, 224)  # Light yellow for normal data rows
@@ -417,7 +450,7 @@ class D1Reporter(FPDF):
         self.set_text_color(0, 0, 0)
         self.cell(0, 10, str(self.page_no()), align='C')
 
-    # ── Title page ──────────────────────────────────────────────────────────
+    # -- Title page ----------------------------------------------------------
     def add_title_page(self, data):
         self.add_page()
         self.set_font('Times', 'B', 28)
@@ -431,7 +464,7 @@ class D1Reporter(FPDF):
         self.set_text_color(0, 0, 0)
         self.cell(0, 10, f'Data: {data["date"]}', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='L')
 
-    # ── TOC ─────────────────────────────────────────────────────────────────
+    # -- TOC -----------------------------------------------------------------
     def draw_toc(self, sections):
         self.set_y(30)
         self.set_font('Helvetica', 'B', 14)
@@ -449,7 +482,7 @@ class D1Reporter(FPDF):
             dots = '.' * max(5, int(avail / dot_w))
             self.cell(0, 7, f'{text}{dots}{page}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
-    # ── Chapter and section titles ───────────────────────────────────────────
+    # -- Chapter and section titles -------------------------------------------
     def chapter_title(self, title):
         self.set_font('Helvetica', 'B', 14)
         self.set_text_color(*SECTION_BLUE)
@@ -467,7 +500,7 @@ class D1Reporter(FPDF):
         self.multi_cell(0, 5, text)
         self.ln(2)
 
-    # ── Generic orange table header row ────────────────────────────────────
+    # -- Generic orange table header row ------------------------------------
     def draw_orange_header(self, headers, widths, row_h=8):
         self.set_font('Helvetica', 'B', 8)
         self.set_fill_color(*HDR_ORANGE)
@@ -481,11 +514,11 @@ class D1Reporter(FPDF):
         self.set_fill_color(*ROW_YELLOW)
 
 
-# ─── Formatting helpers ──────────────────────────────────────────────────────
+# --- Formatting helpers ------------------------------------------------------
 
 def _fmt(val):
     """Format float with comma thousands-style, 2 decimal places.
-    Examples: 372.33 → '372,33', 1.0 → '1', 1797.57 → '1797,57'
+    Examples: 372.33 -> '372,33', 1.0 -> '1', 1797.57 -> '1797,57'
     """
     if val is None:
         return "0"
@@ -501,7 +534,7 @@ def _fmt(val):
     return integer_part
 
 
-# ─── Geometry helpers ────────────────────────────────────────────────────────
+# --- Geometry helpers --------------------------------------------------------
 
 def calculate_area(points):
     n = len(points)
@@ -564,7 +597,7 @@ def segment_intersect(p1, p2, p3, p4):
     return None
 
 
-# ─── Validation logic ────────────────────────────────────────────────────────
+# --- Validation logic --------------------------------------------------------
 
 def check_duplicates(objects):
     all_dupes = []
@@ -802,7 +835,7 @@ def calculate_coperta_scoperta(zd_key, zd_obj, objects):
     return scoperta, coperta
 
 
-# ─── XML Parsing ─────────────────────────────────────────────────────────────
+# --- XML Parsing -------------------------------------------------------------
 
 def parse_xml(xml_input, filename="uploaded.xml"):
     if isinstance(xml_input, str) and os.path.exists(xml_input):
@@ -844,7 +877,7 @@ def parse_xml(xml_input, filename="uploaded.xml"):
 
     errors = []
 
-    # ── 1. Schema validation ──────────────────────────────────────────────
+    # -- 1. Schema validation ----------------------------------------------
     if d_type == "D3" and root.find('Dati_Tecnico') is not None:
         errors.append((
             "Validazione File XML Domanda",
@@ -854,7 +887,7 @@ def parse_xml(xml_input, filename="uploaded.xml"):
             "Errore"
         ))
 
-    # ── 1b. Filename vs Tax Code check ─────────────────────────────────────
+    # -- 1b. Filename vs Tax Code check -------------------------------------
     cf_el = root.find('.//Codice_Fiscale_Richiedente')
     if cf_el is not None and cf_el.text:
         cf_val = cf_el.text.strip()
@@ -867,7 +900,7 @@ def parse_xml(xml_input, filename="uploaded.xml"):
 
 
 
-    # ── 2. Admin competence ───────────────────────────────────────────────
+    # -- 2. Admin competence -----------------------------------------------
     admin_comp = ""
     tipo_admin = ""
     if d_type in ("D1", "D2"):
@@ -889,7 +922,7 @@ def parse_xml(xml_input, filename="uploaded.xml"):
         if admin_comp in ADMIN_MAP:
             admin_display = ADMIN_MAP[admin_comp]
 
-        # ── 2a. "Dati Generali" competence check ──
+        # -- 2a. "Dati Generali" competence check --
         # Historically forced to Error in reference files, now dynamic.
         if admin_comp != REPORTING_ADMIN_CODE:
             errors.append((
@@ -899,7 +932,7 @@ def parse_xml(xml_input, filename="uploaded.xml"):
                 "Errore"
             ))
 
-        # ── 2b. Existence check (D3/D2) ──
+        # -- 2b. Existence check (D3/D2) --
         if d_type in ("D3", "D2"):
             # Check if admin_comp exists in our database
             is_known = admin_comp in ADMIN_MAP
@@ -928,7 +961,7 @@ def parse_xml(xml_input, filename="uploaded.xml"):
                     "Warning"
                 ))
 
-    # ── 3. Parse objects ──────────────────────────────────────────────────
+    # -- 3. Parse objects --------------------------------------------------
     objects = {}
     obj_requested = root.find('Oggetti_Richiesti')
     if obj_requested is not None:
@@ -951,7 +984,7 @@ def parse_xml(xml_input, filename="uploaded.xml"):
                     'self_intersects': False,
                 }
 
-    # ── 4. Survey rows ────────────────────────────────────────────────────
+    # -- 4. Survey rows ----------------------------------------------------
     rilievo = root.find('Righe_Rilievo')
     if rilievo is not None:
         for riga in rilievo.findall('Riga_Rilievo'):
@@ -998,7 +1031,7 @@ def parse_xml(xml_input, filename="uploaded.xml"):
                 if objects[key]['coord_type'] == 'unknown':
                     objects[key]['coord_type'] = coord_type
 
-    # ── 5. Elaborato rows ─────────────────────────────────────────────────
+    # -- 5. Elaborato rows -------------------------------------------------
     elaborato = root.find('Righe_Elaborato')
     if elaborato is not None:
         for riga in elaborato.findall('Riga_Elaborato'):
@@ -1022,7 +1055,7 @@ def parse_xml(xml_input, filename="uploaded.xml"):
                     if key in objects:
                         objects[key]['catasto_codes'].append(code)
                     
-                    # ── 5a. Cadastral competence check ──
+                    # -- 5a. Cadastral competence check --
                     if code != REPORTING_CADASTRAL_CODE:
                         errors.append((
                             "Righe Elaborato",
@@ -1031,7 +1064,7 @@ def parse_xml(xml_input, filename="uploaded.xml"):
                             "Errore"
                         ))
 
-    # ── 6. Compute geometry ───────────────────────────────────────────────
+    # -- 6. Compute geometry -----------------------------------------------
     for key, obj in objects.items():
         if not obj['points']:
             continue
@@ -1043,16 +1076,47 @@ def parse_xml(xml_input, filename="uploaded.xml"):
         if len(obj['points']) >= 4:
             obj['self_intersects'] = check_self_intersection(obj['points'])
 
+    # -- 7. Coordinate anomaly detection ---------------------------------
+    # Detect outlier coordinates: points more than 1000 m from the median cluster
+    coord_anomalies = []  # list of dicts: {obj_key, pt_index, n, e, dist}
+    all_pts_flat = []
+    for key, obj in objects.items():
+        for i, p in enumerate(obj['points']):
+            all_pts_flat.append((p[0], p[1], key, i + 1))  # (E, N, key, 1-based-idx)
+
+    if len(all_pts_flat) > 1:
+        ns_all = [p[1] for p in all_pts_flat]
+        es_all = [p[0] for p in all_pts_flat]
+        ns_sorted = sorted(ns_all)
+        es_sorted = sorted(es_all)
+        n_med = ns_sorted[len(ns_sorted) // 2]
+        e_med = es_sorted[len(es_sorted) // 2]
+        delta_n = max(ns_all) - min(ns_all)
+        delta_e = max(es_all) - min(es_all)
+
+        if delta_n > 50000 or delta_e > 50000:
+            for (e_val, n_val, obj_key, pt_idx) in all_pts_flat:
+                dist = math.sqrt((e_val - e_med) ** 2 + (n_val - n_med) ** 2)
+                if dist > 1000:
+                    coord_anomalies.append({
+                        'obj_key': obj_key,
+                        'pt_idx': pt_idx,
+                        'n': n_val,
+                        'e': e_val,
+                        'dist_km': dist / 1000.0,
+                    })
+
     return {
         'filename': filename,
         'date':     now,
         'd_type':   d_type,
         'objects':  objects,
         'errors':   errors,
+        'coord_anomalies': coord_anomalies,
     }
 
 
-# ─── PDF Generation ──────────────────────────────────────────────────────────
+# --- PDF Generation ----------------------------------------------------------
 
 def _draw_prelim_row(pdf, widths, ctrl, desc, tipo):
     """Draw one row of the Controlli preliminari table exactly matching the reference."""
@@ -1069,7 +1133,7 @@ def _draw_prelim_row(pdf, widths, ctrl, desc, tipo):
 
     is_err = (tipo == "Errore")
 
-    # ── Controllo cell (light yellow, navy blue text) ──
+    # -- Controllo cell (light yellow, navy blue text) --
     pdf.set_fill_color(*ROW_YELLOW)
     pdf.set_text_color(*SECTION_BLUE)
     pdf.set_font('Helvetica', '', 7)
@@ -1079,7 +1143,7 @@ def _draw_prelim_row(pdf, widths, ctrl, desc, tipo):
     pdf.multi_cell(widths[0] - 2, 4.5, ctrl, align='C')
     pdf.set_xy(ctrl_x + widths[0], cur_y)
 
-    # ── Descrizione Anomalia cell ──
+    # -- Descrizione Anomalia cell --
     if is_err:
         pdf.set_fill_color(*ROW_RED_BG)
         pdf.set_text_color(*ERR_RED)
@@ -1095,7 +1159,7 @@ def _draw_prelim_row(pdf, widths, ctrl, desc, tipo):
     pdf.multi_cell(widths[1] - 4, 4.5, desc, align='C')
     pdf.set_xy(desc_x + widths[1], cur_y)
 
-    # ── Tipo Anomalia cell ──
+    # -- Tipo Anomalia cell --
     if is_err:
         pdf.set_fill_color(255, 80, 80)
         pdf.set_text_color(255, 255, 255)
@@ -1122,7 +1186,7 @@ def _draw_area_row(pdf, rw, key, obj, is_d3, objects):
     obj_closed = obj.get('is_closed', False)
     has_pts    = len(obj.get('points', [])) > 0
 
-    # ── Area Chiusa ──
+    # -- Area Chiusa --
     if is_ce or not has_pts:
         area_closed = "-"
     elif obj_closed:
@@ -1130,16 +1194,16 @@ def _draw_area_row(pdf, rw, key, obj, is_d3, objects):
     else:
         area_closed = "No"
 
-    # ── Auto Intersect ──
+    # -- Auto Intersect --
     if is_ce or not has_pts or not obj_closed:
         auto_int = "-"
     else:
         auto_int = "Sì" if obj.get('self_intersects') else "No"
 
-    # ── Area value ── (always show calculated, even for CE)
+    # -- Area value -- (always show calculated, even for CE)
     area_str = _fmt(ca)
 
-    # ── Notes ──
+    # -- Notes --
     note_parts = []
     sup_val = _fmt(ra)
     if is_ce:
@@ -1156,7 +1220,7 @@ def _draw_area_row(pdf, rw, key, obj, is_d3, objects):
     note = "\n".join(note_parts)
     note_lines = note.count('\n') + 1
 
-    # ── Warning? ──
+    # -- Warning? --
     has_warning = False
     diff_area = 0.0
     if not is_ce:
@@ -1308,21 +1372,21 @@ def generate_pdf(data, output_path):
     pdf = D1Reporter(xml_filename)
     pdf.set_title("Esito controlli file Domanda")
     
-    # ── Title page ──
+    # -- Title page --
     pdf.add_title_page(data)
     
-    # ── Geometry checks ──
+    # -- Geometry checks --
     dupes = check_duplicates(data['objects'])
     fuoriuscite = check_containment(data['objects'])
 
     sections = []
 
-    # ── 1. Placeholder for Riepilogo (TOC) ──
+    # -- 1. Placeholder for Riepilogo (TOC) --
     # We add the page now, but will fill it at the end once we have all page numbers.
     pdf.add_page()
     toc_page_num = pdf.page_no()
 
-    # ── 1. Controlli Rilievo ─────────────────────────────────────────────────
+    # -- 1. Controlli Rilievo -------------------------------------------------
     pdf.add_page()
     page_rilievo = pdf.page_no()
     sections.append(("Controlli Rilievo", page_rilievo))
@@ -1330,7 +1394,7 @@ def generate_pdf(data, output_path):
 
     pdf.body_text("Si riporta di seguito l'esito dei controlli eseguiti sul Rilievo Planimetrico.")
 
-    # ── Duplicazione Punti ──────────────────────────────────────────────────
+    # -- Duplicazione Punti --------------------------------------------------
     pdf.section_title('Duplicazione Punti')
     pdf.ln(3)
     pdf.set_font('Helvetica', '', 9)
@@ -1365,7 +1429,74 @@ def generate_pdf(data, output_path):
             pdf.ln(5)
     pdf.ln(5)
 
-    # ── Chiusura, Auto-intersect e Area Oggetti ─────────────────────────────
+    # -- Anomalie Coordinate -------------------------------------------------
+    coord_anomalies = data.get('coord_anomalies', [])
+    pdf.section_title('Anomalie Coordinate')
+    pdf.ln(3)
+    pdf.set_font('Helvetica', '', 9)
+    pdf.set_text_color(0, 0, 0)
+    if not coord_anomalies:
+        pdf.set_text_color(0, 150, 0)
+        pdf.set_font('Helvetica', 'B', 9)
+        pdf.cell(0, 5, "Tutte le coordinate del rilievo sono nel range Gauss-Boaga atteso.",
+                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_font('Helvetica', '', 9)
+    else:
+        pdf.set_text_color(*ERR_RED)
+        pdf.set_font('Helvetica', 'B', 9)
+        pdf.multi_cell(0, 5,
+            f"ATTENZIONE: {len(coord_anomalies)} punt{'o' if len(coord_anomalies)==1 else 'i'} "
+            f"present{'a' if len(coord_anomalies)==1 else 'ano'} coordinate non valide per il sistema "
+            f"Gauss-Boaga Roma40. Le coordinate GB valide per l'Italia hanno N ~ 4.000.000-5.200.000 m "
+            f"ed E ~ 1.200.000-2.800.000 m. I valori rilevati sembrano coordinate geografiche "
+            f"decimali (gradi) inserite erroneamente nei campi Gauss-Boaga.",
+            new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_font('Helvetica', '', 9)
+        pdf.ln(3)
+
+        # Tabella anomalie
+        wa = [22, 20, 38, 38, 30, 22]  # totale = 170
+        pdf.draw_orange_header(
+            ['Oggetto', 'Punto #', 'Coordinata N (inserita)', 'Coordinata E (inserita)', 'Dist. dal cluster', 'Tipo'],
+            wa, row_h=10
+        )
+        pdf.set_font('Helvetica', '', 7)
+        pdf.set_fill_color(*ROW_YELLOW)
+        pdf.set_text_color(0, 0, 0)
+
+        for anom in coord_anomalies:
+            cur_y = pdf.get_y()
+            if cur_y + 8 > 278:
+                pdf.add_page()
+                pdf.draw_orange_header(
+                    ['Oggetto', 'Punto #', 'Coordinata N (inserita)', 'Coordinata E (inserita)', 'Dist. dal cluster', 'Tipo'],
+                    wa, row_h=10
+                )
+                pdf.set_font('Helvetica', '', 7)
+                pdf.set_fill_color(*ROW_YELLOW)
+                pdf.set_text_color(0, 0, 0)
+
+            pdf.cell(wa[0], 8, anom['obj_key'], border=1, fill=True, align='C')
+            pdf.cell(wa[1], 8, str(anom['pt_idx']), border=1, fill=True, align='C')
+            pdf.set_text_color(*ERR_RED)
+            pdf.set_font('Helvetica', 'B', 7)
+            pdf.cell(wa[2], 8, f"{anom['n']:.3f} m", border=1, fill=True, align='R')
+            pdf.cell(wa[3], 8, f"{anom['e']:.3f} m", border=1, fill=True, align='R')
+            pdf.set_text_color(0, 0, 0)
+            pdf.set_font('Helvetica', '', 7)
+            pdf.cell(wa[4], 8, f"{anom['dist_km']:.1f} km", border=1, fill=True, align='C')
+            pdf.set_text_color(*ERR_RED)
+            pdf.set_font('Helvetica', 'B', 7)
+            pdf.cell(wa[5], 8, "Errore", border=1, fill=True, align='C')
+            pdf.set_text_color(0, 0, 0)
+            pdf.set_font('Helvetica', '', 7)
+            pdf.ln()
+
+    pdf.ln(5)
+
+    # -- Chiusura, Auto-intersect e Area Oggetti -----------------------------
     pdf.section_title('Chiusura, Auto-intersect e Area Oggetti')
     pdf.ln(3)
 
@@ -1388,7 +1519,7 @@ def generate_pdf(data, output_path):
 
     pdf.ln(5)
 
-    # ── Intersezione tra Oggetti ────────────────────────────────────────────
+    # -- Intersezione tra Oggetti --------------------------------------------
     pdf.section_title('Intersezione tra Oggetti')
     pdf.ln(3)
     pdf.set_font('Helvetica', '', 9)
@@ -1411,7 +1542,7 @@ def generate_pdf(data, output_path):
 
     pdf.ln(5)
 
-    # ── 4. Planimetria Rilievo ─────────────────────────────────────────────────
+    # -- 4. Planimetria Rilievo -------------------------------------------------
     print("[planimetria] Generazione immagine vettoriale...")
     # Use A4 Portrait dimensions (approx 170x210mm) to minimize white space
     # while fitting the standard vertical format requested by the user.
@@ -1446,7 +1577,7 @@ def generate_pdf(data, output_path):
     else:
         print("[map snapshot] Skipped (fetch failed or no objects).")
 
-    # ── Finalize Riepilogo (TOC) ──
+    # -- Finalize Riepilogo (TOC) --
     # We go back to page 2 and draw the TOC there.
     last_page = pdf.page_no()
     pdf.page = toc_page_num
