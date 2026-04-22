@@ -957,7 +957,8 @@
         document.getElementById('exportCsvBtn').onclick = () => {
             if (!parsedData) return;
             let csvContent = "Oggetto;Punto;N;E;Latitudine;Longitudine\n";
-            parsedData.objects.forEach((points, key) => {
+            parsedData.objects.forEach((objData, key) => {
+                const points = objData.points;
                 points.forEach(p => {
                     csvContent += `${key};${p.id};${p.n.toFixed(2)};${p.e.toFixed(2)};${p.lat.toFixed(6)};${p.lng.toFixed(6)}\n`;
                 });
