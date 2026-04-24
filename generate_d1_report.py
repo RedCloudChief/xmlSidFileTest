@@ -141,7 +141,7 @@ def get_poly_area(pts):
     return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
 
-def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_mm=170, target_height_mm=None):
+def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_mm=170, target_height_mm=None, page_format='A4'):
     """Generate a planimetric vector PNG using matplotlib (no external tiles).
     Objects drawn in true Gauss-Boaga scale with equal-aspect ratio.
     Returns raw PNG bytes, or None on failure.
@@ -155,14 +155,15 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
         # If height is not specified, default to square aspect ratio
         t_h = target_height_mm if target_height_mm else target_width_mm
         aspect = target_width_mm / t_h
-        # Adapt figure size to the target paper aspect
-        # Base size around 8 inches for better stability
-        fig_w = 8
+        # Adapt figure size exactly to the target paper physical dimensions
+        # This prevents FPDF from stretching the image on larger formats (like A3),
+        # ensuring that 1pt in Matplotlib remains exactly 1pt on the printed page.
+        fig_w = target_width_mm / 25.4
         fig_h = fig_w / aspect
         
         fig, ax = plt.subplots(figsize=(fig_w, fig_h), facecolor='#f8f9fa')
         ax.set_facecolor('#eef2f7')
-        ax.tick_params(colors='#555', labelsize=6)
+        ax.tick_params(colors='#888', labelsize=4, width=0.5)
         for spine in ax.spines.values():
             spine.set_edgecolor('#cccccc')
 
@@ -212,27 +213,30 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
             ys = [p[1] for p in pts]
 
             stroke, fill, lw = OBJ_COLORS.get(obj['pref'], DEFAULT_COLOR)
+            
+            # Additional thinning for A3 format as requested
+            lw_mult = 0.6 if page_format == 'A3' else 1.0
 
             if obj.get('is_closed') and len(pts) >= 3:
                 arr = np.array(pts)
                 poly = MplPolygon(arr, closed=True,
                                   facecolor=fill, alpha=0.45,
                                   edgecolor=stroke,
-                                  linewidth=lw, zorder=3)
+                                  linewidth=lw * lw_mult, zorder=3)
                 ax.add_patch(poly)
             else:
-                ax.plot(xs, ys, color=stroke, linewidth=lw, zorder=3)
+                ax.plot(xs, ys, color=stroke, linewidth=lw * lw_mult, zorder=3)
 
             # Vertex dots
-            ax.scatter(xs, ys, s=8, color=stroke, zorder=4,
-                       edgecolors='white', linewidths=0.5)
+            ax.scatter(xs, ys, s=4 * lw_mult, color=stroke, zorder=4,
+                       edgecolors='white', linewidths=0.3 * lw_mult)
 
             # Label at centroid
             cx = sum(xs) / len(xs)
             cy = sum(ys) / len(ys)
-            ax.annotate(key, xy=(cx, cy), fontsize=6, fontweight='bold',
+            ax.annotate(key, xy=(cx, cy), fontsize=4, fontweight='normal',
                         color='white', ha='center', va='center', zorder=5,
-                        bbox=dict(boxstyle='round,pad=0.25', facecolor=stroke,
+                        bbox=dict(boxstyle='round,pad=0.15', facecolor=stroke,
                                   alpha=0.85, edgecolor='none'))
 
             if obj['pref'] not in seen_prefs:
@@ -337,15 +341,14 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
         xpad = vw * 0.08
         ypad = vh * 0.08
 
-        ax.set_xlabel('E -- Gauss-Boaga Roma40 (m)', fontsize=6, color='#666')
-        ax.set_ylabel('N -- Gauss-Boaga Roma40 (m)', fontsize=6, color='#666')
-        ax.grid(True, color='#ccddee', linewidth=0.5, linestyle='--', zorder=1)
-        ax.set_title('Planimetria Rilievo', fontsize=10, fontweight='bold',
+        ax.set_xlabel('E -- Gauss-Boaga Roma40 (m)', fontsize=5, color='#888')
+        ax.set_ylabel('N -- Gauss-Boaga Roma40 (m)', fontsize=5, color='#888')
+        ax.grid(True, color='#ccddee', linewidth=0.4, linestyle='--', zorder=1)
+        ax.set_title('Planimetria Rilievo', fontsize=8, fontweight='normal',
                      color='#1a1a3e', pad=10)
 
-
         if legend_handles:
-            ax.legend(handles=legend_handles, fontsize=7,
+            ax.legend(handles=legend_handles, fontsize=5,
                       facecolor='white', edgecolor='#aaaaaa',
                       framealpha=0.90, loc='lower right')
 
@@ -375,26 +378,26 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
         
         # -- Draw Multi-Segment Scale Bar --
         # Main Line
-        ax.plot([sb_x, sb_x + bar_len], [sb_y, sb_y], color='black', linewidth=2, zorder=20)
+        ax.plot([sb_x, sb_x + bar_len], [sb_y, sb_y], color='black', linewidth=1, zorder=20)
         
         # Start Tick (0m)
-        ax.plot([sb_x, sb_x], [sb_y - vh*0.01, sb_y + vh*0.01], color='black', linewidth=1.5, zorder=20)
-        ax.text(sb_x - vw*0.005, sb_y + vh*0.015, "0", ha='right', va='bottom', fontsize=7, color='black', zorder=21)
+        ax.plot([sb_x, sb_x], [sb_y - vh*0.01, sb_y + vh*0.01], color='black', linewidth=0.8, zorder=20)
+        ax.text(sb_x - vw*0.005, sb_y + vh*0.015, "0", ha='right', va='bottom', fontsize=5, color='black', zorder=21)
         
         # 10m Tick (Mandatory as requested)
         if bar_len > 10:
-            ax.plot([sb_x + 10, sb_x + 10], [sb_y - vh*0.01, sb_y + vh*0.01], color='black', linewidth=1.5, zorder=20)
-            ax.text(sb_x + 10, sb_y + vh*0.025, "10 m", ha='center', va='bottom', fontsize=7, fontweight='black', color='#1a1a3e', zorder=21)
+            ax.plot([sb_x + 10, sb_x + 10], [sb_y - vh*0.01, sb_y + vh*0.01], color='black', linewidth=0.8, zorder=20)
+            ax.text(sb_x + 10, sb_y + vh*0.025, "10 m", ha='center', va='bottom', fontsize=5, color='#1a1a3e', zorder=21)
             # Thicker dark segment for the 10m reference
-            ax.plot([sb_x, sb_x + 10], [sb_y, sb_y], color='#1a1a3e', linewidth=4, zorder=21)
+            ax.plot([sb_x, sb_x + 10], [sb_y, sb_y], color='#1a1a3e', linewidth=2, zorder=21)
         elif bar_len == 10:
-             ax.text(sb_x + 10, sb_y + vh*0.025, "10 m", ha='center', va='bottom', fontsize=7, fontweight='black', color='#1a1a3e', zorder=21)
-             ax.plot([sb_x, sb_x + 10], [sb_y, sb_y], color='#1a1a3e', linewidth=4, zorder=21)
+             ax.text(sb_x + 10, sb_y + vh*0.025, "10 m", ha='center', va='bottom', fontsize=5, color='#1a1a3e', zorder=21)
+             ax.plot([sb_x, sb_x + 10], [sb_y, sb_y], color='#1a1a3e', linewidth=2, zorder=21)
 
         # End Tick
-        ax.plot([sb_x + bar_len, sb_x + bar_len], [sb_y - vh*0.01, sb_y + vh*0.01], color='black', linewidth=1.5, zorder=20)
+        ax.plot([sb_x + bar_len, sb_x + bar_len], [sb_y - vh*0.01, sb_y + vh*0.01], color='black', linewidth=0.8, zorder=20)
         if bar_len != 10:
-            ax.text(sb_x + bar_len + vw*0.005, sb_y + vh*0.015, f"{bar_len} m", ha='left', va='bottom', fontsize=7, color='black', zorder=21)
+            ax.text(sb_x + bar_len + vw*0.005, sb_y + vh*0.015, f"{bar_len} m", ha='left', va='bottom', fontsize=5, color='black', zorder=21)
         
         # Numeric Scale Label (e.g. 1:1000)
         ax.text(sb_x, sb_y - vh*0.025, f"SCALA 1:{chosen_S}",
@@ -1564,32 +1567,75 @@ def generate_pdf(data, output_path):
 
     # -- 4. Planimetria Rilievo -------------------------------------------------
     print("[planimetria] Generazione immagine vettoriale...")
-    # Use A4 Portrait dimensions (approx 170x210mm) to minimize white space
-    # while fitting the standard vertical format requested by the user.
-    img_bytes, chosen_scale = generate_planimetry_image(data['objects'], fuoriuscite=fuoriuscite, target_width_mm=170, target_height_mm=210)
+    
+    # 1. Calcolo del Bounding Box
+    all_x = []
+    all_y = []
+    for k, obj in data['objects'].items():
+        for p in obj.get('points', []):
+            all_x.append(p[0])
+            all_y.append(p[1])
+            
+    if all_x and all_y:
+        dx = max(all_x) - min(all_x)
+        dy = max(all_y) - min(all_y)
+    else:
+        dx, dy = 1, 1
+        
+    # 2. Scelta di default (A4 Portrait)
+    page_format = 'A4'
+    orientation = 'PORTRAIT'
+    target_w_mm = 170
+    target_h_mm = 240
+    page_w_mm = 210
+    
+    # 3. Valutazione Orientamento
+    if dx > dy * 1.3:
+        orientation = 'LANDSCAPE'
+        target_w_mm = 250
+        target_h_mm = 170
+        page_w_mm = 297
+
+    # 4. Valutazione Formato (Se la scala per A4 supera 1:2500, passa ad A3)
+    scale_w = dx / (target_w_mm / 1000) if target_w_mm else 1
+    scale_h = dy / (target_h_mm / 1000) if target_h_mm else 1
+    required_scale = max(scale_w, scale_h)
+    
+    if required_scale > 2500:
+        page_format = 'A3'
+        if orientation == 'PORTRAIT':
+            target_w_mm = 250
+            target_h_mm = 360
+            page_w_mm = 297
+        else:
+            target_w_mm = 380
+            target_h_mm = 250
+            page_w_mm = 420
+
+    img_bytes, chosen_scale = generate_planimetry_image(data['objects'], fuoriuscite=fuoriuscite, target_width_mm=target_w_mm, target_height_mm=target_h_mm, page_format=page_format)
     if img_bytes:
-        print(f"[planimetry] Image generated, size: {len(img_bytes)} bytes")
+        print(f"[planimetry] Image generated, size: {len(img_bytes)} bytes, format: {page_format} {orientation}")
 
-
-        pdf.add_page(format='A4', orientation='PORTRAIT')
+        pdf.add_page(format=page_format, orientation=orientation)
         page_map = pdf.page_no()
         sections.append(("Planimetria Rilievo", page_map))
         pdf.chapter_title('Planimetria Rilievo')
         pdf.ln(2)
-        pdf.set_font('Helvetica', '', 8)
-        pdf.set_text_color(100, 100, 100)
+        caption_size = 9 if page_format == 'A3' else 6
+        pdf.set_font('Helvetica', 'I', caption_size)
+        pdf.set_text_color(140, 140, 140)
+        orientation_ita = "Orizzontale" if orientation == 'LANDSCAPE' else "Verticale"
         pdf.cell(0, 5,
                  f'Planimetria vettoriale generata automaticamente dalle coordinate del rilievo. '
-                 f'Scala di rappresentazione 1:{chosen_scale}',
+                 f'Scala di rappresentazione 1:{chosen_scale} (Formato Stampa: {page_format} {orientation_ita})',
                  new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(3)
 
-        # Centre on A4 Portrait (210x297)
-        img_w = 170
-        x_img = (210 - img_w) / 2
+        # Centratura dinamica
+        img_w = target_w_mm
+        x_img = (page_w_mm - img_w) / 2
         import io
         print(f"[pdf] DEBUG: get_y() prima della mappa: {pdf.get_y()}")
-        # Wrapping bytes in io.BytesIO ensures maximum compatibility with FPDF2 image detection
         pdf.image(io.BytesIO(img_bytes), x=x_img, y=pdf.get_y(), w=img_w, h=0)
 
 

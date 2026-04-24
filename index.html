@@ -1088,68 +1088,82 @@ document.getElementById('toggleAllBtn').onclick = () => {
         // --- DXF Export ---
         document.getElementById('exportDxfBtn').onclick = () => {
             if (!parsedData || parsedData.anomalyMsg === 'detected') return;
-            // Aggiungiamo l'header AC1015 per supportare le LWPOLYLINE
-            let dxfContent = "0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1015\n0\nENDSEC\n";
-            dxfContent += "0\nSECTION\n2\nENTITIES\n";
             
-            parsedData.objects.forEach((objData, key) => {
-                const pts = objData.points;
-                if (pts.length < 2) return; // Skip single points
+            const btn = document.getElementById('exportDxfBtn');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generazione DXF...';
+            btn.disabled = true;
+
+            setTimeout(() => {
+                // Aggiungiamo l'header AC1015 per supportare le LWPOLYLINE
+                let dxfContent = "0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1015\n0\nENDSEC\n";
+                dxfContent += "0\nSECTION\n2\nENTITIES\n";
                 
-                // Determina il colore base (3=Verde per ZD, 4=Ciano per SP, 7=Bianco/Nero default)
-                let color = 7;
-                if (key.toUpperCase().startsWith('ZD')) color = 3;
-                else if (key.toUpperCase().startsWith('SP')) color = 4;
-                
-                // 1. Creiamo la LWPOLYLINE (Il Poligono)
-                dxfContent += `0\nLWPOLYLINE\n100\nAcDbEntity\n8\n${key}\n62\n${color}\n100\nAcDbPolyline\n90\n${pts.length}\n70\n1\n`;
-                pts.forEach(p => {
-                    dxfContent += `10\n${p.e.toFixed(3)}\n20\n${p.n.toFixed(3)}\n`;
-                });
-                
-                // Calcolo area e centroide per l'etichetta centrale
-                let area = 0, cx = 0, cy = 0;
-                for (let i = 0; i < pts.length; i++) {
-                    const p1 = pts[i];
-                    const p2 = pts[(i + 1) % pts.length];
-                    const cross = (p1.e * p2.n) - (p2.e * p1.n);
-                    area += cross;
-                    cx += (p1.e + p2.e) * cross;
-                    cy += (p1.n + p2.n) * cross;
-                }
-                area = area / 2;
-                const absArea = Math.abs(area);
-                if (absArea > 0) {
-                    cx = cx / (6 * area);
-                    cy = cy / (6 * area);
+                parsedData.objects.forEach((objData, key) => {
+                    const pts = objData.points;
+                    if (pts.length < 2) return; // Skip single points
                     
-                    // 2. Testo Centrale (Nome Oggetto + Area)
-                    const label = `${key} (${absArea.toFixed(1)} mq)`;
-                    dxfContent += `0\nTEXT\n100\nAcDbEntity\n8\n${key}_LABEL\n62\n${color}\n100\nAcDbText\n10\n${cx.toFixed(3)}\n20\n${cy.toFixed(3)}\n30\n0.0\n40\n1.5\n1\n${label}\n`;
-                }
-                
-                // 3. Punti (Nodi) e Testo dei Singoli Vertici
-                pts.forEach(p => {
-                    const safeId = p.id ? String(p.id).trim() : "?";
-                    // Entità POINT (Colore 1 = Rosso)
-                    dxfContent += `0\nPOINT\n100\nAcDbEntity\n8\n${key}_NODES\n62\n1\n100\nAcDbPoint\n10\n${p.e.toFixed(3)}\n20\n${p.n.toFixed(3)}\n30\n0.0\n`;
-                    // Entità TEXT per il nome del punto (Colore 7 = Bianco/Nero, Shiftata +0.5m)
-                    dxfContent += `0\nTEXT\n100\nAcDbEntity\n8\n${key}_NODES\n62\n7\n100\nAcDbText\n10\n${(p.e + 0.5).toFixed(3)}\n20\n${(p.n + 0.5).toFixed(3)}\n30\n0.0\n40\n1.0\n1\n${safeId}\n`;
+                    // Determina il colore base (3=Verde per ZD, 4=Ciano per SP, 7=Bianco/Nero default)
+                    let color = 7;
+                    if (key.toUpperCase().startsWith('ZD')) color = 3;
+                    else if (key.toUpperCase().startsWith('SP')) color = 4;
+                    
+                    // 1. Creiamo la LWPOLYLINE (Il Poligono)
+                    dxfContent += `0\nLWPOLYLINE\n100\nAcDbEntity\n8\n${key}\n62\n${color}\n100\nAcDbPolyline\n90\n${pts.length}\n70\n1\n`;
+                    pts.forEach(p => {
+                        dxfContent += `10\n${p.e.toFixed(3)}\n20\n${p.n.toFixed(3)}\n`;
+                    });
+                    
+                    // Calcolo area e centroide per l'etichetta centrale
+                    let area = 0, cx = 0, cy = 0;
+                    for (let i = 0; i < pts.length; i++) {
+                        const p1 = pts[i];
+                        const p2 = pts[(i + 1) % pts.length];
+                        const cross = (p1.e * p2.n) - (p2.e * p1.n);
+                        area += cross;
+                        cx += (p1.e + p2.e) * cross;
+                        cy += (p1.n + p2.n) * cross;
+                    }
+                    area = area / 2;
+                    const absArea = Math.abs(area);
+                    if (absArea > 0) {
+                        cx = cx / (6 * area);
+                        cy = cy / (6 * area);
+                        
+                        // 2. Testo Centrale (Nome Oggetto + Area)
+                        const label = `${key} (${absArea.toFixed(1)} mq)`;
+                        dxfContent += `0\nTEXT\n100\nAcDbEntity\n8\n${key}_LABEL\n62\n${color}\n100\nAcDbText\n10\n${cx.toFixed(3)}\n20\n${cy.toFixed(3)}\n30\n0.0\n40\n1.5\n1\n${label}\n`;
+                    }
+                    
+                    // 3. Punti (Nodi) e Testo dei Singoli Vertici
+                    pts.forEach(p => {
+                        const safeId = p.id ? String(p.id).trim() : "?";
+                        // Entità POINT (Colore 1 = Rosso)
+                        dxfContent += `0\nPOINT\n100\nAcDbEntity\n8\n${key}_NODES\n62\n1\n100\nAcDbPoint\n10\n${p.e.toFixed(3)}\n20\n${p.n.toFixed(3)}\n30\n0.0\n`;
+                        // Entità TEXT per il nome del punto (Colore 7 = Bianco/Nero, Shiftata +0.5m)
+                        dxfContent += `0\nTEXT\n100\nAcDbEntity\n8\n${key}_NODES\n62\n7\n100\nAcDbText\n10\n${(p.e + 0.5).toFixed(3)}\n20\n${(p.n + 0.5).toFixed(3)}\n30\n0.0\n40\n1.0\n1\n${safeId}\n`;
+                    });
                 });
-            });
-            
-            dxfContent += "0\nENDSEC\n0\nEOF\n";
-            
-            const blob = new Blob([dxfContent], { type: 'text/plain;charset=utf-8;' });
-            const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", `rilievo_georeferenziato_${new Date().getTime()}.dxf`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            log("File DXF generato con successo.", 'success');
+                
+                dxfContent += "0\nENDSEC\n0\nEOF\n";
+                
+                const blob = new Blob([dxfContent], { type: 'text/plain;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `rilievo_georeferenziato_${new Date().getTime()}.dxf`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                log("File DXF generato con successo.", 'success');
+                
+                btn.innerHTML = '<i class="fas fa-check"></i> DXF Generato!';
+                setTimeout(() => {
+                    btn.innerHTML = originalContent;
+                    btn.disabled = false;
+                }, 2000);
+            }, 300);
         };
 
         // --- Events ---
