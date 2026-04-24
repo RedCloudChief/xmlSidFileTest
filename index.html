@@ -16,91 +16,121 @@
 
 <body>
 
-    <!-- Fullscreen Loader Overlay -->
-    <div id="loaderOverlay" class="modal-overlay" style="display: none; background: rgba(255,255,255,0.9); flex-direction: column;">
+    <!-- Fullscreen Loader Overlay (Main) -->
+    <div id="mainLoader" class="modal-overlay" style="display: none; flex-direction: column;">
         <div class="modal-icon-container">
             <div class="modal-icon-pulse"></div>
-            <i class="fas fa-spinner fa-spin" style="color: var(--primary); font-size: 2rem;"></i>
+            <i class="fas fa-satellite fa-spin" style="color: var(--primary); font-size: 2.5rem;"></i>
         </div>
-        <h2 id="loaderTitle" style="margin-top: 1rem; color: var(--primary); font-size: 1.2rem;">Elaborazione in corso...</h2>
+        <h2 style="margin-top: 1.5rem; color: var(--text-primary); font-size: 1.2rem; font-weight: 700;">Inizializzazione...</h2>
     </div>
 
     <div class="app-container">
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
+            <button id="sidebarToggle" class="sidebar-toggle-btn" title="Espandi/Contrai">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+
             <div class="sidebar-content">
-                <header>
-                    <h1><i class="fas fa-map-location-dot"></i> GEO-D1 Analyser</h1>
-                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">Processore XML Catastale
-                        Professionale</p>
+                <header class="sidebar-header">
+                    <div class="logo-container">
+                        <i class="fas fa-map-location-dot logo-icon"></i>
+                        <div class="logo-text">
+                            <h1>GEO-D1</h1>
+                            <span>Mission Control</span>
+                        </div>
+                    </div>
                 </header>
 
-                <section class="upload-section">
-                    <div id="dropZone" class="drop-zone">
-                        <i class="fas fa-file-code fa-3x" style="color: var(--primary); margin-bottom: 0.5rem;"></i>
-                        <p>Trascina il file XML qui</p>
-                        <p style="font-size: 0.7rem; opacity: 0.7;">oppure clicca per selezionare</p>
-                        <input type="file" id="fileInput" accept=".xml" style="display: none;">
-                    </div>
-                </section>
+                <div class="sidebar-tabs">
+                    <button class="tab-btn active" data-tab="upload" title="Carica & Info">
+                        <i class="fas fa-cloud-upload-alt"></i><span>Info</span>
+                    </button>
+                    <button class="tab-btn" data-tab="objects" title="Oggetti Rilevati">
+                        <i class="fas fa-layer-group"></i><span>Oggetti</span>
+                    </button>
+                    <button class="tab-btn" data-tab="diagnostic" title="Diagnostica">
+                        <i class="fas fa-microscope"></i><span>Diagnosi</span>
+                    </button>
+                </div>
+
+                <!-- Tab: Upload & Info -->
+                <div id="tab-upload" class="tab-content active">
+                    <section class="upload-section">
+                        <div id="dropZone" class="drop-zone">
+                            <i class="fas fa-file-code fa-3x" style="color: var(--primary); margin-bottom: 1rem;"></i>
+                            <p>Trascina il file XML</p>
+                            <span style="font-size: 0.7rem; opacity: 0.6;">D1 / D3 supportati</span>
+                            <input type="file" id="fileInput" accept=".xml" style="display: none;">
+                        </div>
+                    </section>
 
 
-                <section id="resultsPanel" class="data-panel" style="display: none;">
-                    <div class="card">
-                        <h3><i class="fas fa-user-tie"></i> Richiedente</h3>
-                        <div class="info-grid">
-                            <div class="info-item">
-                                <label>Soggetto</label>
-                                <span id="meta-soggetto">-</span>
-                            </div>
-                            <div class="info-item">
-                                <label>Codice Fiscale</label>
-                                <span id="meta-cf">-</span>
+                    <section id="infoPanel" style="display: none;">
+                        <div class="card">
+                            <h3><i class="fas fa-user-tie"></i> Richiedente</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Soggetto</label>
+                                    <span id="meta-soggetto">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Codice Fiscale</label>
+                                    <span id="meta-cf">-</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="card" id="adminCard" style="display:none;">
-                        <h3><i class="fas fa-landmark"></i> Dati Amministrativi</h3>
-                        <div class="info-grid">
-                            <div class="info-item">
-                                <label>Tipo Domanda</label>
-                                <span id="meta-tipo">-</span>
-                            </div>
-                            <div class="info-item">
-                                <label>Amministrazione</label>
-                                <span id="meta-amm">-</span>
-                            </div>
-                            <div class="info-item" id="concRow" style="display:none;">
-                                <label>Concessione Rif.</label>
-                                <span id="meta-conc">-</span>
-                            </div>
-                            <div class="info-item" id="comuniRow" style="display:none;">
-                                <label>Comuni Catastali</label>
-                                <span id="meta-comuni" style="font-size:0.75rem;">-</span>
+                        <div class="card" id="adminCard" style="display:none;">
+                            <h3><i class="fas fa-landmark"></i> Amministrazione</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Tipo Domanda</label>
+                                    <span id="meta-tipo">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Ente</label>
+                                    <span id="meta-amm">-</span>
+                                </div>
+                                <div class="info-item" id="concRow" style="display:none;">
+                                    <label>Concessione</label>
+                                    <span id="meta-conc">-</span>
+                                </div>
+                                <div class="info-item" id="comuniRow" style="display:none;">
+                                    <label>Comuni</label>
+                                    <span id="meta-comuni" style="font-size:0.75rem;">-</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </section>
+                </div>
 
+                <!-- Tab: Objects -->
+                <div id="tab-objects" class="tab-content">
                     <div class="card">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                            <h3 style="margin: 0;"><i class="fas fa-layer-group"></i> Oggetti Rilevati</h3>
-                            <button id="toggleAllBtn" class="btn"
-                                style="padding: 2px 8px; font-size: 0.65rem; background: var(--border); border-radius: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="margin: 0;"><i class="fas fa-draw-polygon"></i> Elementi</h3>
+                            <button id="toggleAllBtn" class="btn-mini">
                                 <i class="fas fa-eye"></i> Tutti
                             </button>
                         </div>
                         <div class="search-container">
-                            <input type="text" id="sidebarSearch" class="search-input" placeholder="Cerca punto o oggetto...">
+                            <input type="text" id="sidebarSearch" class="search-input" placeholder="Filtra per ID o punto...">
                             <i class="fas fa-search search-icon"></i>
                         </div>
                         <div id="objectList" class="object-list">
-                            <!-- Dynamic Items -->
+                            <div class="empty-state">
+                                <i class="fas fa-folder-open"></i>
+                                <p>Carica un file per vedere gli oggetti</p>
+                            </div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="card" id="statsCard" style="display: none;">
-                        <h3><i class="fas fa-chart-simple"></i> Dettagli Geometria</h3>
+                <!-- Tab: Diagnostic -->
+                <div id="tab-diagnostic" class="tab-content">
+                    <div id="statsCard" class="card" style="display: none;">
+                        <h3><i class="fas fa-chart-line"></i> Analisi Geometria</h3>
                         <div class="info-grid">
                             <div class="info-item">
                                 <label>Perimetro</label>
@@ -116,23 +146,51 @@
                             </div>
                         </div>
                     </div>
-                </section>
+                    
+                    <div id="diagnosticPlaceholder" class="empty-state">
+                        <i class="fas fa-vial"></i>
+                        <p>Nessuna diagnosi disponibile</p>
+                    </div>
+
+                    <!-- Sezione Anomalie (Mostrata solo se presenti) -->
+                    <div id="anomalySidebarSection" style="display: none; padding: 10px;">
+                        <div class="alert alert-danger" style="background: rgba(220, 38, 38, 0.1); border: 1px solid #dc2626; border-radius: 8px; padding: 12px; margin-bottom: 15px;">
+                            <div style="display: flex; align-items: center; gap: 10px; color: #f87171; font-weight: 700; font-size: 0.85rem; margin-bottom: 8px;">
+                                <i class="fas fa-triangle-exclamation"></i>
+                                <span>ANOMALIA COORDINATE</span>
+                            </div>
+                            <p style="font-size: 0.75rem; color: #94a3b8; line-height: 1.4;">
+                                Rilevati punti espressi in gradi (WGS84) invece di metri (Gauss-Boaga).
+                            </p>
+                        </div>
+                        
+                        <div id="sidebarAnomalyList" class="affected-list" style="max-height: none;">
+                            <!-- Dinamico -->
+                        </div>
+
+                        <button id="sidebarOpenDiagBtn" class="btn-modal btn-modal-info" style="width: 100%; margin-top: 15px; font-size: 0.75rem; padding: 10px;">
+                            <i class="fas fa-map-marked-alt"></i> Apri Mappa Diagnostica
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div class="sidebar-footer">
-                <button id="exportCsvBtn" class="btn"
-                    style="width: 100%; padding: 0.75rem; background: var(--primary); color: white; border-radius: 8px; display: none;">
+                <button id="exportCsvBtn" class="btn-primary" style="display: none; width: 100%; margin-bottom: 0.5rem;">
                     <i class="fas fa-file-csv"></i> Esporta CSV
                 </button>
 
-                <button id="verifyXmlBtn" class="btn"
-                    style="width: 100%; padding: 0.75rem; background: #8b0000; color: white; border-radius: 8px; margin-top: 0.5rem; display: none;">
-                    <i class="fas fa-file-pdf"></i> Verifica File XML (PDF)
+                <button id="exportDxfBtn" class="btn-success" style="display: none; width: 100%; margin-bottom: 0.5rem;">
+                    <i class="fas fa-drafting-compass"></i> Esporta DXF (AutoCAD)
                 </button>
 
-                <footer style="margin-top: 0.5rem; font-size: 0.7rem; color: var(--text-muted); text-align: center;">
-                    &copy; 2026 Nuvola Rossa - enrico.morinelli@gmail.com
-                </footer>
+                <button id="verifyXmlBtn" class="btn-danger" style="display: none; width: 100%;">
+                    <i class="fas fa-file-pdf"></i> Report PDF Professionale
+                </button>
+
+                <div class="footer-note">
+                    &copy; 2026 Nuvola Rossa • v2.0 Premium
+                </div>
             </div>
         </aside>
 
@@ -140,42 +198,37 @@
             <div id="map"></div>
 
             <div class="map-overlay">
-                <div class="btn-group">
-                    <button id="mapGrid" class="btn active">Mappa</button>
-                    <button id="mapSat" class="btn">Satellite</button>
+                <!-- Map Type Toggle -->
+                <div class="floating-panel">
+                    <div class="btn-group">
+                        <button id="mapGrid" class="btn active">Mappa</button>
+                        <button id="mapSat" class="btn">Satellite</button>
+                    </div>
                 </div>
-                <div id="mapLayersPanel" style="
-                    margin-top: 8px;
-                    background: rgba(30,30,40,0.88);
-                    backdrop-filter: blur(8px);
-                    border-radius: 10px;
-                    padding: 10px 14px;
-                    font-size: 0.78rem;
-                    color: #e2e8f0;
-                    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
-                    min-width: 210px;
-                ">
-                    <div style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--primary, #7c3aed); margin-bottom: 8px;">
-                        <i class="fas fa-layer-group"></i>&nbsp; Layer SID
+
+                <!-- Layer Controls -->
+                <div id="mapLayersPanel" class="floating-panel">
+                    <div class="panel-header">
+                        <i class="fas fa-layer-group"></i> Layer SID
                     </div>
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; cursor: pointer;">
-                        <input type="checkbox" id="sidDividenteToggle" style="width: auto; accent-color: #dc2626;">
-                        <label for="sidDividenteToggle" style="margin: 0; cursor: pointer;">Dividente Demaniale</label>
+                    <div class="layer-item">
+                        <input type="checkbox" id="sidDividenteToggle">
+                        <label for="sidDividenteToggle">Dividente Demaniale</label>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; cursor: pointer;">
-                        <input type="checkbox" id="sidCostaToggle" style="width: auto; accent-color: #06b6d4;">
-                        <label for="sidCostaToggle" style="margin: 0; cursor: pointer;">Dividente della Costa</label>
+                    <div class="layer-item">
+                        <input type="checkbox" id="sidCostaToggle">
+                        <label for="sidCostaToggle">Dividente Costa</label>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; cursor: pointer;">
-                        <input type="checkbox" id="sidConcToggle" style="width: auto; accent-color: #8b5cf6;">
-                        <label for="sidConcToggle" style="margin: 0; cursor: pointer;">Concessioni</label>
+                    <div class="layer-item">
+                        <input type="checkbox" id="sidConcToggle">
+                        <label for="sidConcToggle">Concessioni</label>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;">
-                        <input type="checkbox" id="sidAdmToggle" style="width: auto; accent-color: #f59e0b;">
-                        <label for="sidAdmToggle" style="margin: 0; cursor: pointer;">Amministrazioni</label>
+                    <div class="layer-item">
+                        <input type="checkbox" id="sidAdmToggle">
+                        <label for="sidAdmToggle">Amministrazioni</label>
                     </div>
-                    <div style="padding: 5px 7px; background: rgba(255,251,235,0.1); border: 1px solid rgba(253,230,138,0.3); border-radius: 5px; font-size: 0.68rem; color: #fde68a;">
-                        <i class="fas fa-info-circle"></i> Dati limitati all'area di <strong>Casal Velino</strong>
+                    <div class="panel-footer" style="padding: 5px 7px; background: rgba(255,251,235,0.05); border-radius: 5px; font-size: 0.65rem; color: #fde68a; margin-top: 5px;">
+                        <i class="fas fa-info-circle"></i> Area: <strong>Casal Velino</strong>
                     </div>
                 </div>
             </div>
@@ -184,10 +237,13 @@
     </div>
 
     <!-- Fullscreen Loading Overlay per generazione PDF -->
-    <div id="loaderOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); z-index: 9999; backdrop-filter: blur(5px); flex-direction: column; justify-content: center; align-items: center; color: white; font-family: 'Inter', sans-serif;">
-        <i class="fas fa-circle-notch fa-spin fa-4x" style="color: var(--primary); margin-bottom: 20px;"></i>
-        <h2 id="loaderTitle" style="margin: 0; font-weight: 600; letter-spacing: 0.5px;">Generazione Report PDF in corso...</h2>
-        <p id="loaderMessage" style="margin-top: 10px; color: #cbd5e1; font-size: 0.9rem;">L'operazione potrebbe richiedere alcuni secondi. Attendere prego.</p>
+    <div id="loaderOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.9); z-index: 9999; backdrop-filter: blur(15px); flex-direction: column; justify-content: center; align-items: center; color: white; font-family: 'Inter', sans-serif;">
+        <div class="loader-visual">
+            <i class="fas fa-circle-notch fa-spin fa-4x" style="color: var(--primary);"></i>
+            <div class="loader-glow"></div>
+        </div>
+        <h2 id="loaderTitle" style="margin: 20px 0 5px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; font-size: 1.1rem;">Elaborazione</h2>
+        <p id="loaderMessage" style="color: var(--text-secondary); font-size: 0.85rem;">Sincronizzazione dei dati spaziali...</p>
     </div>
     
     <!-- Modal per Anomalie Coordinate -->
@@ -264,8 +320,9 @@
             console.log(`[${type.toUpperCase()}] ${msg}`);
         }
 
-        window.onerror = function (msg, url, line) {
-            log(`CRITICAL: ${msg} (${line})`, 'error');
+        window.onerror = function (msg, url, line, col, err) {
+            log(`CRITICAL@${line}:${col}: ${msg}`, 'error');
+            if (err && err.stack) console.error('Stack:', err.stack);
         };
 
         // --- State ---
@@ -455,19 +512,29 @@
                 const isAbsoluteAnomaly = !((nMed > 3800000 && nMed < 5500000) && (eMed > 1000000 && eMed < 3000000));
 
                 if (isRangeAnomaly || isAbsoluteAnomaly) {
-                    // Trova i punti lontani dalla mediana (se range anomaly) 
-                    // o tutti i punti se sono tutti fuori range assoluto
-                    const withDist = points.map(p => ({
-                        ...p,
-                        dist: Math.sqrt((p.n - nMed)**2 + (p.e - eMed)**2)
-                    }));
+                    // Trova i punti lontani dalla mediana
+                    const withDist = points.map(p => {
+                        let calcN = p.n;
+                        let calcE = p.e;
+                        
+                        // Se è in gradi, convertiamo in metri GB per il calcolo della distanza dal cluster
+                        if (p.isOutlier) {
+                            // Usa il fuso corretto in base alla posizione del cluster
+                            const isEast = eMed > 2000000;
+                            const gbProj = getProjString(isEast, 'peninsula');
+                            const gb = proj4('EPSG:4326', gbProj, [p.lng, p.lat]);
+                            calcE = gb[0];
+                            calcN = gb[1];
+                        }
+
+                        const dist = Math.sqrt((calcN - nMed)**2 + (calcE - eMed)**2);
+                        return { ...p, dist, calcN, calcE };
+                    });
                     
-                    // Se è un errore assoluto (tutti i punti sono intorno a 40,15)
-                    // marchiamo come outlier tutto ciò che non è nel range Italia
+                    // Outlier: o già marcati come WGS, o distanti > 1km dal cluster corretto
                     const outlierPts = withDist.filter(p => {
-                        if (p.isOutlier) return true; // Già marcato come WGS84
+                        if (p.isOutlier) return true;
                         if (isRangeAnomaly) return p.dist > 1000;
-                        // Se è solo un errore assoluto, tutti i punti fuori range sono outlier
                         return !((p.n > 3800000 && p.n < 5500000) && (p.e > 1000000 && p.e < 3000000));
                     });
 
@@ -479,9 +546,7 @@
                         outlierByObj[k].push({ ptId: p.id, n: p.n, e: p.e, dist: p.dist });
                     });
 
-                    // Costruisci lista testuale
                     const objNames = Object.keys(outlierByObj);
-
                     anomalyMsg = "detected";
                     outlierInfo = {
                         objects: outlierByObj,
@@ -606,38 +671,60 @@
 
         // --- Rendering ---
         function renderResults(data) {
-            document.getElementById('resultsPanel').style.display = 'block';
-            document.getElementById('meta-soggetto').textContent = data.metadata.soggetto;
-            document.getElementById('meta-cf').textContent = data.metadata.cf;
+            log("Inizio rendering dei risultati...");
+            try {
+                if (!document.getElementById('infoPanel')) {
+                   log("ERRORE: infoPanel non trovato nell'HTML", 'error');
+                }
+                document.getElementById('infoPanel').style.display = 'block';
+                
+                // Switch to objects tab
+                const objTabBtn = document.querySelector('[data-tab="objects"]');
+                if (objTabBtn) objTabBtn.click();
 
-            // Admin card
-            const m = data.metadata;
-            document.getElementById('meta-tipo').textContent = m.tipoDomanda || '-';
-            document.getElementById('meta-amm').textContent = m.ammDisplay || '-';
-            if (m.concDisplay) {
-                document.getElementById('meta-conc').textContent = m.concDisplay;
-                document.getElementById('concRow').style.display = '';
-            }
-            if (m.comuni && m.comuni.length > 0) {
-                document.getElementById('meta-comuni').textContent = m.comuni.join(', ');
-                document.getElementById('comuniRow').style.display = '';
-            }
-            document.getElementById('adminCard').style.display = 'block';
+                document.getElementById('meta-soggetto').textContent = data.metadata.soggetto || '-';
+                document.getElementById('meta-cf').textContent = data.metadata.cf || '-';
 
-            const list = document.getElementById('objectList');
-            list.innerHTML = '';
+                const m = data.metadata;
+                if (document.getElementById('meta-tipo')) document.getElementById('meta-tipo').textContent = m.tipoDomanda || '-';
+                if (document.getElementById('meta-amm')) document.getElementById('meta-amm').textContent = m.ammDisplay || '-';
+                
+                if (m.concDisplay && document.getElementById('meta-conc')) {
+                    document.getElementById('meta-conc').textContent = m.concDisplay;
+                    if (document.getElementById('concRow')) document.getElementById('concRow').style.display = '';
+                }
+                if (m.comuni && m.comuni.length > 0 && document.getElementById('meta-comuni')) {
+                    document.getElementById('meta-comuni').textContent = m.comuni.join(', ');
+                    if (document.getElementById('comuniRow')) document.getElementById('comuniRow').style.display = '';
+                }
+                if (document.getElementById('adminCard')) document.getElementById('adminCard').style.display = 'block';
 
-            currentLayers.forEach(l => l.setMap(null));
-            currentLayers = [];
-            pointMarkers.clear();
-            objectLayers.clear();
+                const list = document.getElementById('objectList');
+                if (!list) {
+                    log("ERRORE: objectList non trovato", 'error');
+                    return;
+                }
+                list.innerHTML = '';
 
-            const bounds = new google.maps.LatLngBounds();
-            const objKeys = Array.from(data.objects.keys());
-            const outlierObjKeys = data.outlierObjKeys || new Set();
+                // Clear layers safely
+                currentLayers.forEach(l => { if (l && l.setMap) l.setMap(null); });
+                currentLayers = [];
+                pointMarkers.clear();
+                objectLayers.clear();
 
-            data.objects.forEach((objData, key) => {
-                const points = objData.points;
+                if (!map || typeof google === 'undefined') {
+                    log("AVVISO: Mappa non pronta, disegno rimandato.", 'warn');
+                    // We still populate the list, but skip map fit
+                }
+
+                const bounds = (typeof google !== 'undefined') ? new google.maps.LatLngBounds() : null;
+                const objKeys = Array.from(data.objects.keys());
+                const outlierObjKeys = data.outlierObjKeys || new Set();
+
+                log(`Rendering di ${data.objects.size} oggetti...`);
+                data.objects.forEach((objData, key) => {
+                    try {
+                        const points = objData.points;
                 const isOutlierObj = outlierObjKeys.has(key);
                 const stats = calculateStats(points, objData.officialArea, objData.officialVolume) || { status: 'ERRORE', perimeter: '-', area: '-', isClosed: false };
                 const color = isOutlierObj ? '#dc2626' : `hsl(${(objKeys.indexOf(key) * 137) % 360}, 100%, 55%)`;
@@ -915,43 +1002,66 @@
                     document.getElementById('geo-status').textContent = stats.status;
                 };
 
-                latlngs.forEach(ll => bounds.extend(ll));
+                latlngs.forEach(ll => { if (bounds) bounds.extend(ll); });
                 list.appendChild(item);
-            });
-
-            if (currentLayers.length > 0) {
-                map.fitBounds(bounds);
-                if (boundaryManager) boundaryManager.setPointsBounds(bounds);
-
-                updateMarkerSizes(); // Apply initial scaling
-                document.getElementById('exportCsvBtn').style.display = 'block';
-                document.getElementById('toggleAllBtn').style.display = 'block';
+            } catch (objErr) {
+                log(`Errore nel rendering dell'oggetto ${key}: ` + objErr.message, 'warn');
             }
-        }
+        });
+        
+        log("Rendering completato.");
 
-        // --- Master Toggle ---
-        document.getElementById('toggleAllBtn').onclick = () => {
-            const btn = document.getElementById('toggleAllBtn');
-            const icon = btn.querySelector('i');
-            const isHiding = icon.classList.contains('fa-eye');
-
-            document.querySelectorAll('.visibility-toggle').forEach(toggle => {
-                const hidden = toggle.classList.contains('hidden');
-                if ((isHiding && !hidden) || (!isHiding && hidden)) {
-                    toggle.click();
-                }
-            });
-
-            if (isHiding) {
-                icon.className = 'fas fa-eye-slash';
-                btn.style.background = 'var(--danger)';
-                btn.style.color = 'white';
+        if (currentLayers.length > 0 && map && bounds) {
+            map.fitBounds(bounds);
+            if (boundaryManager) boundaryManager.setPointsBounds(bounds);
+            updateMarkerSizes();
+            document.getElementById('exportCsvBtn').style.display = 'block';
+            
+            const dxfBtn = document.getElementById('exportDxfBtn');
+            dxfBtn.style.display = 'block';
+            if (parsedData.anomalyMsg === 'detected') {
+                dxfBtn.disabled = true;
+                dxfBtn.style.opacity = '0.5';
+                dxfBtn.style.cursor = 'not-allowed';
+                dxfBtn.title = 'Disabilitato: Coordinate anomale rilevate nel file. Impossibile esportare DXF.';
             } else {
-                icon.className = 'fas fa-eye';
-                btn.style.background = 'var(--border)';
-                btn.style.color = 'inherit';
+                dxfBtn.disabled = false;
+                dxfBtn.style.opacity = '1';
+                dxfBtn.style.cursor = 'pointer';
+                dxfBtn.title = '';
             }
-        };
+            
+            document.getElementById('toggleAllBtn').style.display = 'block';
+        }
+    } catch (err) {
+        log("Errore critico durante il rendering: " + err.message, 'error');
+        console.error(err);
+    }
+}
+
+// --- Master Toggle ---
+document.getElementById('toggleAllBtn').onclick = () => {
+    const btn = document.getElementById('toggleAllBtn');
+    const icon = btn.querySelector('i');
+    const isHiding = icon.classList.contains('fa-eye');
+
+    document.querySelectorAll('.visibility-toggle').forEach(toggle => {
+        const hidden = toggle.classList.contains('hidden');
+        if ((isHiding && !hidden) || (!isHiding && hidden)) {
+            toggle.click();
+        }
+    });
+
+    if (isHiding) {
+        icon.className = 'fas fa-eye-slash';
+        btn.style.background = 'var(--danger)';
+        btn.style.color = 'white';
+    } else {
+        icon.className = 'fas fa-eye';
+        btn.style.background = 'var(--border)';
+        btn.style.color = 'inherit';
+    }
+};
 
         // --- CSV Export ---
         document.getElementById('exportCsvBtn').onclick = () => {
@@ -973,6 +1083,73 @@
             link.click();
             document.body.removeChild(link);
             log("File CSV generato.", 'success');
+        };
+
+        // --- DXF Export ---
+        document.getElementById('exportDxfBtn').onclick = () => {
+            if (!parsedData || parsedData.anomalyMsg === 'detected') return;
+            // Aggiungiamo l'header AC1015 per supportare le LWPOLYLINE
+            let dxfContent = "0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1015\n0\nENDSEC\n";
+            dxfContent += "0\nSECTION\n2\nENTITIES\n";
+            
+            parsedData.objects.forEach((objData, key) => {
+                const pts = objData.points;
+                if (pts.length < 2) return; // Skip single points
+                
+                // Determina il colore base (3=Verde per ZD, 4=Ciano per SP, 7=Bianco/Nero default)
+                let color = 7;
+                if (key.toUpperCase().startsWith('ZD')) color = 3;
+                else if (key.toUpperCase().startsWith('SP')) color = 4;
+                
+                // 1. Creiamo la LWPOLYLINE (Il Poligono)
+                dxfContent += `0\nLWPOLYLINE\n100\nAcDbEntity\n8\n${key}\n62\n${color}\n100\nAcDbPolyline\n90\n${pts.length}\n70\n1\n`;
+                pts.forEach(p => {
+                    dxfContent += `10\n${p.e.toFixed(3)}\n20\n${p.n.toFixed(3)}\n`;
+                });
+                
+                // Calcolo area e centroide per l'etichetta centrale
+                let area = 0, cx = 0, cy = 0;
+                for (let i = 0; i < pts.length; i++) {
+                    const p1 = pts[i];
+                    const p2 = pts[(i + 1) % pts.length];
+                    const cross = (p1.e * p2.n) - (p2.e * p1.n);
+                    area += cross;
+                    cx += (p1.e + p2.e) * cross;
+                    cy += (p1.n + p2.n) * cross;
+                }
+                area = area / 2;
+                const absArea = Math.abs(area);
+                if (absArea > 0) {
+                    cx = cx / (6 * area);
+                    cy = cy / (6 * area);
+                    
+                    // 2. Testo Centrale (Nome Oggetto + Area)
+                    const label = `${key} (${absArea.toFixed(1)} mq)`;
+                    dxfContent += `0\nTEXT\n100\nAcDbEntity\n8\n${key}_LABEL\n62\n${color}\n100\nAcDbText\n10\n${cx.toFixed(3)}\n20\n${cy.toFixed(3)}\n30\n0.0\n40\n1.5\n1\n${label}\n`;
+                }
+                
+                // 3. Punti (Nodi) e Testo dei Singoli Vertici
+                pts.forEach(p => {
+                    const safeId = p.id ? String(p.id).trim() : "?";
+                    // Entità POINT (Colore 1 = Rosso)
+                    dxfContent += `0\nPOINT\n100\nAcDbEntity\n8\n${key}_NODES\n62\n1\n100\nAcDbPoint\n10\n${p.e.toFixed(3)}\n20\n${p.n.toFixed(3)}\n30\n0.0\n`;
+                    // Entità TEXT per il nome del punto (Colore 7 = Bianco/Nero, Shiftata +0.5m)
+                    dxfContent += `0\nTEXT\n100\nAcDbEntity\n8\n${key}_NODES\n62\n7\n100\nAcDbText\n10\n${(p.e + 0.5).toFixed(3)}\n20\n${(p.n + 0.5).toFixed(3)}\n30\n0.0\n40\n1.0\n1\n${safeId}\n`;
+                });
+            });
+            
+            dxfContent += "0\nENDSEC\n0\nEOF\n";
+            
+            const blob = new Blob([dxfContent], { type: 'text/plain;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `rilievo_georeferenziato_${new Date().getTime()}.dxf`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            log("File DXF generato con successo.", 'success');
         };
 
         // --- Events ---
@@ -1106,8 +1283,26 @@
                                  modal.style.display = 'flex';
                                  
                                  // Mostra avviso in sidebar
-                                 const sidebarWarning = document.getElementById('anomalySidebarWarning');
-                                 if (sidebarWarning) sidebarWarning.style.display = 'flex';
+                                 const sidebarSection = document.getElementById('anomalySidebarSection');
+                                 if (sidebarSection) sidebarSection.style.display = 'block';
+                                 
+                                 const sidebarList = document.getElementById('sidebarAnomalyList');
+                                 if (sidebarList) {
+                                     sidebarList.innerHTML = oi.objNames.map(name => {
+                                         const pts = oi.objects[name];
+                                         return `
+                                            <div class="affected-card" style="margin-bottom: 8px;">
+                                                <div class="card-obj-header" style="font-size: 0.75rem;">
+                                                    <div class="card-obj-name"><i class="fas fa-cube"></i> ${name}</div>
+                                                    <div class="card-obj-pts">${pts.length} punti</div>
+                                                </div>
+                                            </div>
+                                         `;
+                                     }).join('');
+                                 }
+
+                                 const sidebarBtn = document.getElementById('sidebarOpenDiagBtn');
+                                 if (sidebarBtn) sidebarBtn.onclick = () => window.open(diagUrl, '_blank');
 
                                  // Aggiunge anche il banner sopra la mappa
                                  const mapEl = document.getElementById('map');
@@ -1125,8 +1320,8 @@
                                     const json2 = await res2.json();
                                     drawIntersections(json2.fuoriuscite);
                                 } catch(err) {}
-                                // NON nascondere il pannello risultati
-                                document.getElementById('resultsPanel').style.display = 'block';
+                                // Pannello info visibile
+                                document.getElementById('infoPanel').style.display = 'block';
                             } else {
                                 // Render normale
                                 document.getElementById('mapLayersPanel').style.display = 'block';
@@ -1141,10 +1336,12 @@
                                 } catch (err) {
                                     console.error("Error fetching intersections:", err);
                                 }
+                                document.getElementById('infoPanel').style.display = 'block';
                             }
                         }
                     } catch (err) { 
-                        log("Errore: " + err.message, 'error'); 
+                        log("Errore@handleFiles: " + (err && err.message ? err.message : String(err)), 'error');
+                        console.error('handleFiles error:', err); 
                     } finally {
                         if (overlay) overlay.style.display = 'none';
                     }
@@ -1242,24 +1439,27 @@
         }
 
         // --- Search Filter ---
-        document.getElementById('sidebarSearch').addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            const objects = document.querySelectorAll('.object-item');
-            
-            objects.forEach(obj => {
-                const objId = obj.querySelector('.obj-id').textContent.toLowerCase();
-                const points = Array.from(obj.querySelectorAll('.point-id')).map(p => p.textContent.toLowerCase());
+        const searchInput = document.getElementById('sidebarSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                const objects = document.querySelectorAll('.object-item');
                 
-                const matchObj = objId.includes(query);
-                const matchPoint = points.some(p => p.includes(query));
-                
-                if (matchObj || matchPoint) {
-                    obj.style.display = 'block';
-                } else {
-                    obj.style.display = 'none';
-                }
+                objects.forEach(obj => {
+                    const objId = obj.querySelector('.obj-id').textContent.toLowerCase();
+                    const points = Array.from(obj.querySelectorAll('.point-id')).map(p => p.textContent.toLowerCase());
+                    
+                    const matchObj = objId.includes(query);
+                    const matchPoint = points.some(p => p.includes(query));
+                    
+                    if (matchObj || matchPoint) {
+                        obj.style.display = 'block';
+                    } else {
+                        obj.style.display = 'none';
+                    }
+                });
             });
-        });
+        }
 
         // --- PDF Verification Button ---
         document.getElementById('verifyXmlBtn').onclick = async () => {
@@ -1332,6 +1532,29 @@
                 if (overlay) overlay.style.display = 'none';
             }
         };
+
+        // --- Sidebar & Tab Interactivity ---
+        document.getElementById('sidebarToggle').onclick = () => {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
+            const icon = document.querySelector('#sidebarToggle i');
+            if (sidebar.classList.contains('collapsed')) {
+                icon.className = 'fas fa-chevron-right';
+            } else {
+                icon.className = 'fas fa-chevron-left';
+            }
+        };
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.onclick = () => {
+                const tab = btn.getAttribute('data-tab');
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                const content = document.getElementById(`tab-${tab}`);
+                if (content) content.classList.add('active');
+            };
+        });
 
         // initMap(); // Called by Google Maps callback
         loadGoogleMaps();

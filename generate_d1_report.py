@@ -106,6 +106,19 @@ def gb_to_wgs84(n, e):
     return math.degrees(lat), math.degrees(lon)
 
 
+def wgs84_to_gb(lat, lon):
+    """Convert WGS84 (lat, lon) to Gauss-Boaga (N, E)."""
+    if PYPROJ_AVAILABLE:
+        try:
+            # We use the West zone (EPSG:3003) as default for conversion
+            _wgs_to_gb = Transformer.from_crs("EPSG:4326", "EPSG:3003", always_xy=True)
+            e, n = _wgs_to_gb.transform(lon, lat)
+            return n, e
+        except Exception:
+            pass
+    return None, None
+
+
 # --- Static map snapshot -----------------------------------------------------
 
 GOOGLE_API_KEY = "AIzaSyDfCPsN9FMueurdBHsjT2FvRlLVas0VIgU"  # kept for future use
@@ -1096,7 +1109,14 @@ def parse_xml(xml_input, filename="uploaded.xml"):
 
         if delta_n > 50000 or delta_e > 50000:
             for (e_val, n_val, obj_key, pt_idx) in all_pts_flat:
-                dist = math.sqrt((e_val - e_med) ** 2 + (n_val - n_med) ** 2)
+                # Se il punto sembra in gradi (es. 40.xx), convertiamolo in metri per il calcolo della distanza reale
+                calc_n, calc_e = n_val, e_val
+                if abs(n_val) < 180 and abs(e_val) < 180:
+                    proj_n, proj_e = wgs84_to_gb(n_val, e_val)
+                    if proj_n:
+                        calc_n, calc_e = proj_n, proj_e
+
+                dist = math.sqrt((calc_e - e_med) ** 2 + (calc_n - n_med) ** 2)
                 if dist > 1000:
                     coord_anomalies.append({
                         'obj_key': obj_key,
