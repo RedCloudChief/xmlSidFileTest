@@ -191,6 +191,21 @@
                 <div class="footer-note">
                     &copy; 2026 Nuvola Rossa • v2.0 Premium
                 </div>
+
+                <div id="userProfile" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.03); border: 1px solid var(--glass-border); border-radius: 8px; margin-top: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem;" id="userInitials">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 0.8rem; color: var(--text-primary);" id="userNameDisplay">Caricamento...</div>
+                            <div style="font-size: 0.65rem; color: var(--text-secondary);" id="userEmailDisplay">...</div>
+                        </div>
+                    </div>
+                    <a href="/logout" class="btn-mini" style="color: var(--accent-rose); text-decoration: none; padding: 6px; border-radius: 6px; background: rgba(244, 63, 94, 0.1);" title="Logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </a>
+                </div>
             </div>
         </aside>
 
@@ -1293,7 +1308,7 @@ document.getElementById('toggleAllBtn').onclick = () => {
                                      `;
                                  }).join('');
                                  
-                                 document.getElementById('openDiagMapBtn').onclick = () => window.open(diagUrl, '_blank');
+                                 document.getElementById('openDiagMapBtn').onclick = () => { document.getElementById('diagMapIframe').src = diagUrl; document.getElementById('diagMapOverlay').style.display = 'block'; };
                                  modal.style.display = 'flex';
                                  
                                  // Mostra avviso in sidebar
@@ -1316,7 +1331,7 @@ document.getElementById('toggleAllBtn').onclick = () => {
                                  }
 
                                  const sidebarBtn = document.getElementById('sidebarOpenDiagBtn');
-                                 if (sidebarBtn) sidebarBtn.onclick = () => window.open(diagUrl, '_blank');
+                                 if (sidebarBtn) sidebarBtn.onclick = () => { document.getElementById('diagMapIframe').src = diagUrl; document.getElementById('diagMapOverlay').style.display = 'block'; };
 
                                  // Aggiunge anche il banner sopra la mappa
                                  const mapEl = document.getElementById('map');
@@ -1570,10 +1585,57 @@ document.getElementById('toggleAllBtn').onclick = () => {
             };
         });
 
+        // Fetch user data
+        fetch('/api/user')
+            .then(res => {
+                if(!res.ok) {
+                    window.location.href = '/login';
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data.nome) {
+                    document.getElementById('userNameDisplay').textContent = `${data.nome} ${data.cognome}`;
+                    document.getElementById('userEmailDisplay').textContent = data.email;
+                    document.getElementById('userInitials').textContent = (data.nome[0] + data.cognome[0]).toUpperCase();
+                }
+            })
+            .catch(err => console.error("Error fetching user data:", err));
+
         // initMap(); // Called by Google Maps callback
         loadGoogleMaps();
+
+        // Diag Map Overlay handler
+        window.closeDiagMap = function() {
+            document.getElementById('diagMapOverlay').style.display = 'none';
+            document.getElementById('diagMapIframe').src = '';
+        };
+
+        // --- Auto-Logout Inattività (3 minuti) ---
+        (function() {
+            let time;
+            const logoutTimeMs = 3 * 60 * 1000; // 3 minuti
+
+            function resetTimer() {
+                clearTimeout(time);
+                time = setTimeout(() => {
+                    alert("Sessione scaduta per inattività (3 minuti). Verrai disconnesso.");
+                    window.location.href = '/logout';
+                }, logoutTimeMs);
+            }
+
+            // Ascolta vari eventi per resettare il timer
+            window.onload = resetTimer;
+            document.onmousemove = resetTimer;
+            document.onkeydown = resetTimer;
+            document.onclick = resetTimer;
+            document.onscroll = resetTimer;
+        })();
     </script>
 
+    <!-- Diag Map Overlay -->
+    <div id="diagMapOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:999999; background:var(--bg-app);">
+        <iframe id="diagMapIframe" style="width:100%; height:100%; border:none;"></iframe>
+    </div>
 </body>
-
 </html>

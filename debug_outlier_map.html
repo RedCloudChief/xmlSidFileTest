@@ -150,7 +150,7 @@
         <button class="btn-diag btn-red"   onclick="goToOutlier()"><i class="fas fa-crosshairs"></i> Zoom su Anomalia</button>
         <button class="btn-diag btn-green" onclick="goToCluster()"><i class="fas fa-location-dot"></i> Zoom su Cluster</button>
         <button class="btn-diag btn-blue"  onclick="fitAll()"><i class="fas fa-expand-arrows-alt"></i> Vista Globale</button>
-        <button class="btn-diag btn-back"  onclick="history.back()"><i class="fas fa-arrow-left"></i> Torna ad Analizzatore</button>
+        <button class="btn-diag btn-back"  onclick="if(window.parent && window.parent.closeDiagMap) { window.parent.closeDiagMap(); } else { location.href='/'; }"><i class="fas fa-arrow-left"></i> Torna ad Analizzatore</button>
       </div>
 
       <!-- Legend -->
