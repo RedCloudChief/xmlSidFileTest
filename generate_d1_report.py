@@ -184,10 +184,16 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
         dx, dy = xmax - xmin, ymax - ymin
 
         if dx > 50000 or dy > 50000:
+            testo_errore = (
+                "ANOMALIA GEOMETRICA BLOCCANTE\n\n"
+                "Impossibile stampare la planimetria.\n"
+                "Il rilievo presenta un'escursione anomala tipicamente causata dall'inserimento nel file XML di punti con coordinate incongruenti.\n\n"
+                "Si consiglia di ispezionare con attenzione il file XML per andare a correggere eventuali coordinate errate."
+            )
             ax.set_facecolor('#fff1f2')
             ax.axis('off')
-            ax.text(0.5, 0.5, "ANOMALIA GEOMETRICA BLOCCANTE\n\nImpossibile stampare la planimetria.\nIl rilievo presenta un'escursione anomala (> 50 km).\n\nQuesto rimpicciolirebbe la mappa a dimensioni invisibili.\nIl problema è tipicamente causato da coordinate\nassenti o nulle (es. N=0, E=0) o errori di battitura.\n\nSi prega di ispezionare con attenzione il file XML per\nandare a correggere le coordinate errate.",
-                    transform=ax.transAxes, ha='center', va='center', fontsize=11, color='#b91c1c', fontweight='bold', multialignment='center')
+            ax.text(0.5, 0.5, testo_errore,
+                    transform=ax.transAxes, ha='center', va='center', fontsize=16, color='#b91c1c', fontweight='bold', multialignment='center', wrap=True)
             chosen_S = "ERRORE"
             
             fig.tight_layout(pad=1.5)
@@ -201,6 +207,78 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
             except Exception: pass
             return data_bytes, chosen_S
 
+        # -- Geographic Scaling Logic --
+        # xmin, xmax, ymin, ymax already calculated above
+        cx, cy = (xmin + xmax) / 2, (ymin + ymax) / 2
+        
+        # We want the objects to fit in the specified viewport (W x H) in the PDF.
+        # Minimal safety margin (7%) to maximize representation area as requested.
+        margin = 1.07
+        paper_w_m = target_width_mm / 1000.0
+        paper_h_m = (target_height_mm / 1000.0) if target_height_mm else paper_w_m
+        
+        raw_s_w = (dx * margin) / paper_w_m
+        raw_s_h = (dy * margin) / paper_h_m
+        min_S = max(raw_s_w, raw_s_h)
+        
+        # --- Ultra-Granular Scaling Logic ---
+        if min_S < 1000:
+            chosen_S = int(np.ceil(min_S / 10.0) * 10)
+        elif min_S < 5000:
+            chosen_S = int(np.ceil(min_S / 50.0) * 50)
+        elif min_S < 10000:
+            chosen_S = int(np.ceil(min_S / 250.0) * 250)
+        else:
+            chosen_S = int(np.ceil(min_S / 1000.0) * 1000)
+        
+        if chosen_S < 50: chosen_S = 50
+        
+        # Set viewport limits based on the chosen scale
+        vw = chosen_S * paper_w_m
+        vh = chosen_S * paper_h_m
+        
+        ax.set_xlim(cx - vw/2, cx + vw/2)
+        ax.set_ylim(cy - vh/2, cy + vh/2)
+        ax.set_aspect('equal', adjustable='box')
+
+        # --- Adaptive Font Sizes Logic ---
+        if chosen_S <= 250:
+            label_fs = 10.0
+            legend_fs = 7.0
+            ticks_fs = 5.0
+        elif chosen_S <= 500:
+            label_fs = 8.0
+            legend_fs = 6.0
+            ticks_fs = 4.5
+        elif chosen_S <= 1000:
+            label_fs = 6.0
+            legend_fs = 5.5
+            ticks_fs = 4.0
+        elif chosen_S <= 2500:
+            label_fs = 5.0
+            legend_fs = 5.0
+            ticks_fs = 3.5
+        else:
+            label_fs = 4.0
+            legend_fs = 4.0
+            ticks_fs = 3.0
+
+        # --- Adaptive Line Width Logic ---
+        if chosen_S <= 500:
+            scale_lw_mult = 1.0
+        elif chosen_S <= 1000:
+            scale_lw_mult = 0.8
+        elif chosen_S <= 2500:
+            scale_lw_mult = 0.6
+        else:
+            scale_lw_mult = 0.4
+            
+        base_lw_mult = 0.6 if page_format == 'A3' else 1.0
+        lw_mult = base_lw_mult * scale_lw_mult
+
+        # Apply adaptive ticks
+        ax.tick_params(colors='#888', labelsize=ticks_fs, width=0.5 * lw_mult)
+
         legend_handles = []
         seen_prefs = set()
 
@@ -213,9 +291,6 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
             ys = [p[1] for p in pts]
 
             stroke, fill, lw = OBJ_COLORS.get(obj['pref'], DEFAULT_COLOR)
-            
-            # Additional thinning for A3 format as requested
-            lw_mult = 0.6 if page_format == 'A3' else 1.0
 
             if obj.get('is_closed') and len(pts) >= 3:
                 arr = np.array(pts)
@@ -234,7 +309,7 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
             # Label at centroid
             cx = sum(xs) / len(xs)
             cy = sum(ys) / len(ys)
-            ax.annotate(key, xy=(cx, cy), fontsize=4, fontweight='normal',
+            ax.annotate(key, xy=(cx, cy), fontsize=label_fs, fontweight='bold',
                         color='white', ha='center', va='center', zorder=5,
                         bbox=dict(boxstyle='round,pad=0.15', facecolor=stroke,
                                   alpha=0.85, edgecolor='none'))
@@ -243,7 +318,7 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
                 seen_prefs.add(obj['pref'])
                 legend_handles.append(
                     mpatches.Patch(facecolor=fill, edgecolor=stroke,
-                                   linewidth=lw, label=obj['pref'], alpha=0.75))
+                                   linewidth=lw * lw_mult, label=obj['pref'], alpha=0.75))
 
         # -- Draw Highlights for Extruded Areas (Fuoriuscite) --
         if fuoriuscite:
@@ -291,64 +366,20 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
             if seen_ext:
                 legend_handles.append(
                     mpatches.Patch(facecolor='#FF0000', edgecolor='#B71C1C',
-                                   linewidth=1.5, label='Fuori Limite (RED 80%)', alpha=0.8))
+                                   linewidth=1.5 * lw_mult, label='Fuori Limite (RED 80%)', alpha=0.8))
 
-        # -- Geographic Scaling Logic --
-        # xmin, xmax, ymin, ymax already calculated above
-        cx, cy = (xmin + xmax) / 2, (ymin + ymax) / 2
-        
-        # We want the objects to fit in the specified viewport (W x H) in the PDF.
-        # Minimal safety margin (7%) to maximize representation area as requested.
-        margin = 1.07
-        paper_w_m = target_width_mm / 1000.0
-        paper_h_m = (target_height_mm / 1000.0) if target_height_mm else paper_w_m
-        
-        raw_s_w = (dx * margin) / paper_w_m
-        raw_s_h = (dy * margin) / paper_h_m
-        min_S = max(raw_s_w, raw_s_h)
-        
-        # --- Ultra-Granular Scaling Logic ---
-        # Calculate a tight best-fit scale with minimal rounding overhead.
-        if min_S < 1000:
-            # Round up to the next 10 (e.g. 512 -> 520)
-            chosen_S = int(np.ceil(min_S / 10.0) * 10)
-        elif min_S < 5000:
-            # Round up to the next 50 (e.g. 1120 -> 1150)
-            chosen_S = int(np.ceil(min_S / 50.0) * 50)
-        elif min_S < 10000:
-            # Round up to the next 250 (e.g. 6300 -> 6500)
-            chosen_S = int(np.ceil(min_S / 250.0) * 250)
-        else:
-            # Round up to the next 1000
-            chosen_S = int(np.ceil(min_S / 1000.0) * 1000)
-        
-        # Minimum baseline
-        if chosen_S < 50: chosen_S = 50
-        
-        # Set viewport limits based on the chosen scale
-        view_w_m = chosen_S * paper_w_m
-        view_h_m = chosen_S * paper_h_m
-        
-        ax.set_xlim(cx - view_w_m/2, cx + view_w_m/2)
-        ax.set_ylim(cy - view_h_m/2, cy + view_h_m/2)
-        ax.set_aspect('equal', adjustable='box')
-
-
-
-
-        # Viewport metric extent for positioning scale bar
-        vw, vh = chosen_S * paper_w_m, chosen_S * paper_h_m
+        # Viewport metric extent for positioning scale bar and labels
         xpad = vw * 0.08
         ypad = vh * 0.08
 
-        ax.set_xlabel('E -- Gauss-Boaga Roma40 (m)', fontsize=5, color='#888')
-        ax.set_ylabel('N -- Gauss-Boaga Roma40 (m)', fontsize=5, color='#888')
-        ax.grid(True, color='#ccddee', linewidth=0.4, linestyle='--', zorder=1)
-        ax.set_title('Planimetria Rilievo', fontsize=8, fontweight='normal',
+        ax.set_xlabel('E -- Gauss-Boaga Roma40 (m)', fontsize=ticks_fs + 1, color='#888')
+        ax.set_ylabel('N -- Gauss-Boaga Roma40 (m)', fontsize=ticks_fs + 1, color='#888')
+        ax.grid(True, color='#ccddee', linewidth=0.4 * lw_mult, linestyle='--', zorder=1)
+        ax.set_title('Planimetria Rilievo', fontsize=legend_fs + 2, fontweight='normal',
                      color='#1a1a3e', pad=10)
 
         if legend_handles:
-            ax.legend(handles=legend_handles, fontsize=5,
+            ax.legend(handles=legend_handles, fontsize=legend_fs,
                       facecolor='white', edgecolor='#aaaaaa',
                       framealpha=0.90, loc='lower right')
 
@@ -485,7 +516,7 @@ class D1Reporter(FPDF):
         self.set_y(30)
         self.set_font('Helvetica', 'B', 14)
         self.set_text_color(0, 0, 0)
-        self.cell(0, 10, 'Riepilogo', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='L')
+        self.cell(0, 10, 'Indice', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='L')
 
 
         self.ln(5)
@@ -1589,28 +1620,37 @@ def generate_pdf(data, output_path):
     target_h_mm = 240
     page_w_mm = 210
     
-    # 3. Valutazione Orientamento
-    if dx > dy * 1.3:
-        orientation = 'LANDSCAPE'
-        target_w_mm = 250
-        target_h_mm = 170
-        page_w_mm = 297
-
-    # 4. Valutazione Formato (Se la scala per A4 supera 1:2500, passa ad A3)
-    scale_w = dx / (target_w_mm / 1000) if target_w_mm else 1
-    scale_h = dy / (target_h_mm / 1000) if target_h_mm else 1
-    required_scale = max(scale_w, scale_h)
+    # 3. Valutazione Formato e Orientamento
+    is_error = (dx > 50000 or dy > 50000)
     
-    if required_scale > 2500:
-        page_format = 'A3'
-        if orientation == 'PORTRAIT':
+    if is_error:
+        orientation = 'PORTRAIT'
+        page_format = 'A4'
+        target_w_mm = 170
+        target_h_mm = 240
+        page_w_mm = 210
+    else:
+        if dx > dy * 1.3:
+            orientation = 'LANDSCAPE'
             target_w_mm = 250
-            target_h_mm = 360
+            target_h_mm = 170
             page_w_mm = 297
-        else:
-            target_w_mm = 380
-            target_h_mm = 250
-            page_w_mm = 420
+
+        # 4. Valutazione Formato (Se la scala per A4 supera 1:2500, passa ad A3)
+        scale_w = dx / (target_w_mm / 1000) if target_w_mm else 1
+        scale_h = dy / (target_h_mm / 1000) if target_h_mm else 1
+        required_scale = max(scale_w, scale_h)
+        
+        if required_scale > 2500:
+            page_format = 'A3'
+            if orientation == 'PORTRAIT':
+                target_w_mm = 250
+                target_h_mm = 360
+                page_w_mm = 297
+            else:
+                target_w_mm = 380
+                target_h_mm = 250
+                page_w_mm = 420
 
     img_bytes, chosen_scale = generate_planimetry_image(data['objects'], fuoriuscite=fuoriuscite, target_width_mm=target_w_mm, target_height_mm=target_h_mm, page_format=page_format)
     if img_bytes:
@@ -1621,15 +1661,14 @@ def generate_pdf(data, output_path):
         sections.append(("Planimetria Rilievo", page_map))
         pdf.chapter_title('Planimetria Rilievo')
         pdf.ln(2)
-        caption_size = 9 if page_format == 'A3' else 6
-        pdf.set_font('Helvetica', 'I', caption_size)
-        pdf.set_text_color(140, 140, 140)
+        pdf.set_font('Helvetica', '', 9)
+        pdf.set_text_color(0, 0, 0)
         orientation_ita = "Orizzontale" if orientation == 'LANDSCAPE' else "Verticale"
-        pdf.cell(0, 5,
-                 f'Planimetria vettoriale generata automaticamente dalle coordinate del rilievo. '
-                 f'Scala di rappresentazione 1:{chosen_scale} (Formato Stampa: {page_format} {orientation_ita})',
-                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        pdf.ln(3)
+        if chosen_scale != "ERRORE":
+            pdf.multi_cell(0, 5,
+                     f'Planimetria vettoriale generata automaticamente dalle coordinate del rilievo. '
+                     f'Scala di rappresentazione 1:{chosen_scale} (Formato Stampa: {page_format} {orientation_ita})')
+            pdf.ln(3)
 
         # Centratura dinamica
         img_w = target_w_mm
@@ -1643,13 +1682,13 @@ def generate_pdf(data, output_path):
     else:
         print("[map snapshot] Skipped (fetch failed or no objects).")
 
-    # -- Finalize Riepilogo (TOC) --
+    # -- Finalize Indice (TOC) --
     # We go back to page 2 and draw the TOC there.
     last_page = pdf.page_no()
     pdf.page = toc_page_num
     # The sections list already has Preliminaries, Rilievo, and Map.
-    # We insert Riepilogo at the start with its own page number.
-    sections.insert(0, ("Riepilogo", toc_page_num))
+    # We insert Indice at the start with its own page number.
+    sections.insert(0, ("Indice", toc_page_num))
     pdf.draw_toc(sections)
     
     # Reset to last page for clean output state
