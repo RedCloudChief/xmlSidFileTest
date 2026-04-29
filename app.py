@@ -128,9 +128,10 @@ def verify():
     fd, output_path = tempfile.mkstemp(suffix='.pdf')
     os.close(fd) # Close immediately, let fpdf manage the handle
 
+    show_labels = request.form.get('show_labels', 'true').lower() == 'true'
     try:
-        print(f"Generating report for {filename} to {output_path}...")
-        run_validation(xml_content, output_path, filename)
+        print(f"Generating report for {filename} to {output_path} (Labels: {show_labels})...")
+        run_validation(xml_content, output_path, filename, show_labels=show_labels)
         
         if not os.path.exists(output_path):
             return "PDF generation failed - file not found", 500

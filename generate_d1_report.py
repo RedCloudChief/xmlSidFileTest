@@ -141,7 +141,7 @@ def get_poly_area(pts):
     return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
 
-def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_mm=170, target_height_mm=None, page_format='A4'):
+def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_mm=170, target_height_mm=None, page_format='A4', show_labels=True):
     """Generate a planimetric vector PNG using matplotlib (no external tiles).
     Objects drawn in true Gauss-Boaga scale with equal-aspect ratio.
     Returns raw PNG bytes, or None on failure.
@@ -212,8 +212,8 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
         cx, cy = (xmin + xmax) / 2, (ymin + ymax) / 2
         
         # We want the objects to fit in the specified viewport (W x H) in the PDF.
-        # Minimal safety margin (7%) to maximize representation area as requested.
-        margin = 1.07
+        # Minimal safety margin (3% for A3 to maximize zoom, 7% for A4)
+        margin = 1.03 if page_format == 'A3' else 1.07
         paper_w_m = target_width_mm / 1000.0
         paper_h_m = (target_height_mm / 1000.0) if target_height_mm else paper_w_m
         
@@ -241,27 +241,27 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
         ax.set_ylim(cy - vh/2, cy + vh/2)
         ax.set_aspect('equal', adjustable='box')
 
-        # --- Adaptive Font Sizes Logic ---
+        # --- Adaptive Font Sizes Logic (Enlarged) ---
         if chosen_S <= 250:
-            label_fs = 10.0
-            legend_fs = 7.0
-            ticks_fs = 5.0
+            label_fs = 12.0
+            legend_fs = 10.0
+            ticks_fs = 9.0
         elif chosen_S <= 500:
-            label_fs = 8.0
-            legend_fs = 6.0
-            ticks_fs = 4.5
+            label_fs = 11.0
+            legend_fs = 9.0
+            ticks_fs = 8.5
         elif chosen_S <= 1000:
-            label_fs = 6.0
-            legend_fs = 5.5
-            ticks_fs = 4.0
+            label_fs = 10.0
+            legend_fs = 8.5
+            ticks_fs = 8.0
         elif chosen_S <= 2500:
-            label_fs = 5.0
-            legend_fs = 5.0
-            ticks_fs = 3.5
+            label_fs = 9.0
+            legend_fs = 8.0
+            ticks_fs = 7.5
         else:
-            label_fs = 4.0
-            legend_fs = 4.0
-            ticks_fs = 3.0
+            label_fs = 8.0
+            legend_fs = 7.5
+            ticks_fs = 7.0
 
         # --- Adaptive Line Width Logic ---
         if chosen_S <= 500:
@@ -276,8 +276,8 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
         base_lw_mult = 0.6 if page_format == 'A3' else 1.0
         lw_mult = base_lw_mult * scale_lw_mult
 
-        # Apply adaptive ticks
-        ax.tick_params(colors='#888', labelsize=ticks_fs, width=0.5 * lw_mult)
+        # Apply adaptive ticks (Now with larger font as requested)
+        ax.tick_params(colors='#444', labelsize=ticks_fs, width=0.6 * lw_mult)
 
         legend_handles = []
         seen_prefs = set()
@@ -307,18 +307,21 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
                        edgecolors='white', linewidths=0.3 * lw_mult)
 
             # Label at centroid
-            cx = sum(xs) / len(xs)
-            cy = sum(ys) / len(ys)
-            ax.annotate(key, xy=(cx, cy), fontsize=label_fs, fontweight='bold',
-                        color='white', ha='center', va='center', zorder=5,
-                        bbox=dict(boxstyle='round,pad=0.15', facecolor=stroke,
-                                  alpha=0.85, edgecolor='none'))
+            if show_labels:
+                cx = sum(xs) / len(xs)
+                cy = sum(ys) / len(ys)
+                ax.annotate(key, xy=(cx, cy), fontsize=label_fs, fontweight='bold',
+                            color='white', ha='center', va='center', zorder=5,
+                            bbox=dict(boxstyle='round,pad=0.15', facecolor=stroke,
+                                      alpha=0.85, edgecolor='none'))
 
             if obj['pref'] not in seen_prefs:
                 seen_prefs.add(obj['pref'])
+                label_text = obj['pref']
+                
                 legend_handles.append(
                     mpatches.Patch(facecolor=fill, edgecolor=stroke,
-                                   linewidth=lw * lw_mult, label=obj['pref'], alpha=0.75))
+                                   linewidth=lw * lw_mult, label=label_text, alpha=0.75))
 
         # -- Draw Highlights for Extruded Areas (Fuoriuscite) --
         if fuoriuscite:
@@ -364,83 +367,51 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
 
             
             if seen_ext:
+                ext_label = 'Fuori Limite'
                 legend_handles.append(
                     mpatches.Patch(facecolor='#FF0000', edgecolor='#B71C1C',
-                                   linewidth=1.5 * lw_mult, label='Fuori Limite (RED 80%)', alpha=0.8))
+                                   linewidth=1.5 * lw_mult, label=ext_label, alpha=0.8))
 
-        # Viewport metric extent for positioning scale bar and labels
-        xpad = vw * 0.08
-        ypad = vh * 0.08
-
-        ax.set_xlabel('E -- Gauss-Boaga Roma40 (m)', fontsize=ticks_fs + 1, color='#888')
-        ax.set_ylabel('N -- Gauss-Boaga Roma40 (m)', fontsize=ticks_fs + 1, color='#888')
-        ax.grid(True, color='#ccddee', linewidth=0.4 * lw_mult, linestyle='--', zorder=1)
-        ax.set_title('Planimetria Rilievo', fontsize=legend_fs + 2, fontweight='normal',
-                     color='#1a1a3e', pad=10)
-
-        if legend_handles:
-            ax.legend(handles=legend_handles, fontsize=legend_fs,
-                      facecolor='white', edgecolor='#aaaaaa',
-                      framealpha=0.90, loc='lower right')
-
-        # -- Scale Bar Logic --
-        # Gauss-Boaga is in meters. We compute a "nice" unit based on map viewport width (vw).
-        # We want the scale bar to occupy roughly 15-25% of the map viewport.
-        import math
-        ideal_target = vw * 0.20
-        if ideal_target < 1: 
-            ideal_target = 10
-            
-        magnitude = 10 ** math.floor(math.log10(ideal_target))
-        val = ideal_target / magnitude
-        if val >= 5:
-            bar_len = 5 * magnitude
-        elif val >= 2:
-            bar_len = 2 * magnitude
+        # --- Adaptive Grid and Ticks Logic ---
+        # Select a nice interval for the grid that matches the scale bar logic
+        if chosen_S <= 500:
+            grid_interval = 10
+        elif chosen_S <= 1000:
+            grid_interval = 20
+        elif chosen_S <= 2500:
+            grid_interval = 50
         else:
-            bar_len = 1 * magnitude
+            grid_interval = 100
             
-        bar_len = int(bar_len) if bar_len >= 1 else bar_len
+        from matplotlib.ticker import MultipleLocator
+        ax.xaxis.set_major_locator(MultipleLocator(grid_interval))
+        ax.yaxis.set_major_locator(MultipleLocator(grid_interval))
         
-        # Position in bottom-left corner with some padding from the spines
-        # Use viewport relative positioning
-        sb_x = (cx - vw/2) + vw * 0.05
-        sb_y = (cy - vh/2) + vh * 0.05
-        
-        # -- Draw Multi-Segment Scale Bar --
-        # Main Line
-        ax.plot([sb_x, sb_x + bar_len], [sb_y, sb_y], color='black', linewidth=1, zorder=20)
-        
-        # Start Tick (0m)
-        ax.plot([sb_x, sb_x], [sb_y - vh*0.01, sb_y + vh*0.01], color='black', linewidth=0.8, zorder=20)
-        ax.text(sb_x - vw*0.005, sb_y + vh*0.015, "0", ha='right', va='bottom', fontsize=5, color='black', zorder=21)
-        
-        # 10m Tick (Mandatory as requested)
-        if bar_len > 10:
-            ax.plot([sb_x + 10, sb_x + 10], [sb_y - vh*0.01, sb_y + vh*0.01], color='black', linewidth=0.8, zorder=20)
-            ax.text(sb_x + 10, sb_y + vh*0.025, "10 m", ha='center', va='bottom', fontsize=5, color='#1a1a3e', zorder=21)
-            # Thicker dark segment for the 10m reference
-            ax.plot([sb_x, sb_x + 10], [sb_y, sb_y], color='#1a1a3e', linewidth=2, zorder=21)
-        elif bar_len == 10:
-             ax.text(sb_x + 10, sb_y + vh*0.025, "10 m", ha='center', va='bottom', fontsize=5, color='#1a1a3e', zorder=21)
-             ax.plot([sb_x, sb_x + 10], [sb_y, sb_y], color='#1a1a3e', linewidth=2, zorder=21)
+        # --- Formatting Ticks (No Scientific Notation) ---
+        ax.ticklabel_format(useOffset=False, style='plain')
+        ax.grid(True, color='#ccddee', linewidth=0.5 * lw_mult, linestyle='-', alpha=0.6, zorder=1)
+        ax.set_xlabel('')
+        ax.set_ylabel('')
 
-        # End Tick
-        ax.plot([sb_x + bar_len, sb_x + bar_len], [sb_y - vh*0.01, sb_y + vh*0.01], color='black', linewidth=0.8, zorder=20)
-        if bar_len != 10:
-            ax.text(sb_x + bar_len + vw*0.005, sb_y + vh*0.015, f"{bar_len} m", ha='left', va='bottom', fontsize=5, color='black', zorder=21)
-        
-        # Numeric Scale Label (e.g. 1:1000)
-        ax.text(sb_x, sb_y - vh*0.025, f"SCALA 1:{chosen_S}",
-                ha='left', va='top', fontsize=9, fontweight='bold',
-                color='black', zorder=21,
-                bbox=dict(boxstyle='square,pad=0.15', facecolor='white', alpha=0.8, edgecolor='#cccccc'))
+        # -- Legend Logic (Condizionata) --
+        if show_labels and legend_handles:
+            ax.legend(handles=legend_handles, fontsize=legend_fs,
+                      facecolor='white', edgecolor='#1a1a3e',
+                      framealpha=0.9, loc='lower right',
+                      borderpad=0.6, handletextpad=0.5).set_zorder(100)
 
-        fig.tight_layout(pad=1.5)
+        # -- Scale Label --
+        ax.text(0.015, 0.05, f"SCALA 1:{chosen_S}", transform=ax.transAxes,
+                ha='left', va='bottom', fontsize=legend_fs + 3, fontweight='black',
+                color='#1a1a3e', zorder=30,
+                bbox=dict(boxstyle='round,pad=0.25', facecolor='white', alpha=0.95, edgecolor='#1a1a3e', linewidth=1.5))
+
+        # Absolute maximum maximization of the grid area
+        fig.subplots_adjust(left=0.03, right=0.97, top=0.97, bottom=0.03)
 
         fd, tmp = tempfile.mkstemp(suffix='.png')
         os.close(fd)
-        fig.savefig(tmp, dpi=dpi, bbox_inches='tight',
+        fig.savefig(tmp, dpi=dpi, bbox_inches='tight', pad_inches=0.05,
                     facecolor=fig.get_facecolor())
         
         plt.close(fig)
@@ -492,7 +463,7 @@ class D1Reporter(FPDF):
             self.ln(4)
 
     def footer(self):
-        self.set_y(-15)
+        self.set_y(-12.8) # Lowered further as requested (approx +2 pixels down)
         self.set_font('Helvetica', '', 8)
         self.set_text_color(0, 0, 0)
         self.cell(0, 10, str(self.page_no()), align='C')
@@ -1418,7 +1389,7 @@ def _draw_containment_table(pdf, fuoriuscite):
 
 
 
-def generate_pdf(data, output_path):
+def generate_pdf(data, output_path, show_labels=True):
     d_type = data['d_type']
     is_d3 = (d_type == "D3")
     xml_filename = data['filename']
@@ -1643,38 +1614,46 @@ def generate_pdf(data, output_path):
         
         if required_scale > 2500:
             page_format = 'A3'
+            # Further slight reduction (370mm instead of 380mm) to maximize safety margins
             if orientation == 'PORTRAIT':
-                target_w_mm = 250
-                target_h_mm = 360
+                target_w_mm = 260
+                target_h_mm = 370
                 page_w_mm = 297
             else:
-                target_w_mm = 380
-                target_h_mm = 250
+                target_w_mm = 370
+                target_h_mm = 260
                 page_w_mm = 420
 
-    img_bytes, chosen_scale = generate_planimetry_image(data['objects'], fuoriuscite=fuoriuscite, target_width_mm=target_w_mm, target_height_mm=target_h_mm, page_format=page_format)
+    img_bytes, chosen_scale = generate_planimetry_image(data['objects'], fuoriuscite=fuoriuscite, target_width_mm=target_w_mm, target_height_mm=target_h_mm, page_format=page_format, show_labels=show_labels)
     if img_bytes:
         print(f"[planimetry] Image generated, size: {len(img_bytes)} bytes, format: {page_format} {orientation}")
 
+        # Add map page
         pdf.add_page(format=page_format, orientation=orientation)
         page_map = pdf.page_no()
         sections.append(("Planimetria Rilievo", page_map))
-        pdf.chapter_title('Planimetria Rilievo')
-        pdf.ln(2)
-        pdf.set_font('Helvetica', '', 9)
+        
+        import io
+        # Move everything slightly lower as requested (y=18, which is +1mm/approx 3px from previous)
+        pdf.set_y(18) 
+        
+        pdf.set_font('Helvetica', 'B', 14)
+        pdf.set_text_color(*SECTION_BLUE)
+        pdf.cell(0, 8, 'Planimetria Rilievo', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='L')
+        
+        pdf.set_font('Helvetica', '', 10)
         pdf.set_text_color(0, 0, 0)
         orientation_ita = "Orizzontale" if orientation == 'LANDSCAPE' else "Verticale"
         if chosen_scale != "ERRORE":
             pdf.multi_cell(0, 5,
                      f'Planimetria vettoriale generata automaticamente dalle coordinate del rilievo. '
                      f'Scala di rappresentazione 1:{chosen_scale} (Formato Stampa: {page_format} {orientation_ita})')
-            pdf.ln(3)
+            pdf.ln(2)
 
-        # Centratura dinamica
+        # Center and maximize image height
         img_w = target_w_mm
         x_img = (page_w_mm - img_w) / 2
-        import io
-        print(f"[pdf] DEBUG: get_y() prima della mappa: {pdf.get_y()}")
+        # The image will now start much higher up
         pdf.image(io.BytesIO(img_bytes), x=x_img, y=pdf.get_y(), w=img_w, h=0)
 
 
@@ -1699,9 +1678,9 @@ def generate_pdf(data, output_path):
 
 
 
-def run_validation(xml_input, output_path, filename="uploaded.xml"):
+def run_validation(xml_input, output_path, filename="uploaded.xml", show_labels=True):
     data = parse_xml(xml_input, filename)
-    generate_pdf(data, output_path)
+    generate_pdf(data, output_path, show_labels=show_labels)
     return output_path
 
 

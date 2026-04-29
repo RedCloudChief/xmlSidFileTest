@@ -102,6 +102,148 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="card" id="praticaCard" style="display:none;">
+                            <h3><i class="fas fa-file-invoice"></i> Dati Pratica</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Decorrenza</label>
+                                    <span id="meta-decorrenza">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Durata</label>
+                                    <span id="meta-durata">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Categoria / Uso</label>
+                                    <span id="meta-scopi">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Anticipata Occ.</label>
+                                    <span id="meta-anticipata">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="rifCard" style="display:none;">
+                            <h3><i class="fas fa-history"></i> Riferimenti e Concessioni</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Prot. Precedente</label>
+                                    <span id="meta-prot-prec">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Data Domanda Prec.</label>
+                                    <span id="meta-data-prec">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Concessione Rif.</label>
+                                    <span id="meta-conc-rif">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Anno/Tipo Rif.</label>
+                                    <span id="meta-conc-rif-dett">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="accessiCard" style="display:none;">
+                            <h3><i class="fas fa-universal-access"></i> Accessi e Limitazioni</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Tipo Accesso</label>
+                                    <span id="meta-accesso">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Posti Limitati</label>
+                                    <span id="meta-posti-lim">-</span>
+                                </div>
+                                <div class="info-item" style="grid-column: span 2;">
+                                    <label>Coordinate Dichiarate (N/E)</label>
+                                    <span id="meta-coords-dich">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="sedeCard" style="display:none;">
+                            <h3><i class="fas fa-map-marker-alt"></i> Sede Legale</h3>
+                            <div class="info-grid">
+                                <div class="info-item" style="grid-column: span 2;">
+                                    <label>Indirizzo</label>
+                                    <span id="meta-indirizzo">-</span>
+                                </div>
+                                <div class="info-item" style="grid-column: span 2;">
+                                    <label>Rappresentante Legale</label>
+                                    <span id="meta-rappresentante">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Telefono</label>
+                                    <span id="meta-telefono">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Email</label>
+                                    <span id="meta-email">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="portualitaCard" style="display:none;">
+                            <h3><i class="fas fa-anchor"></i> Dati Portuali / Barca</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Fondale (Min/Max)</label>
+                                    <span id="meta-fondale">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Imbarcazione</label>
+                                    <span id="meta-barca">-</span>
+                                </div>
+                                <div class="info-item" style="grid-column: span 2;">
+                                    <label>Dimensioni Barca</label>
+                                    <span id="meta-barca-dim">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="tecnicoCard" style="display:none;">
+                            <h3><i class="fas fa-hard-hat"></i> Tecnico Redattore</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Nominativo</label>
+                                    <span id="meta-tecnico-nome">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Codice Fiscale</label>
+                                    <span id="meta-tecnico-cf">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Iscrizione Albo</label>
+                                    <span id="meta-tecnico-albo">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Data Rilievo</label>
+                                    <span id="meta-tecnico-data">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="softwareCard" style="display:none;">
+                            <h3><i class="fas fa-laptop-code"></i> Dati Software</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Applicativo</label>
+                                    <span id="meta-software-nome">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Versione</label>
+                                    <span id="meta-software-versione">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Data Rilascio</label>
+                                    <span id="meta-software-data">-</span>
+                                </div>
+                            </div>
+                        </div>
                     </section>
                 </div>
 
@@ -317,6 +459,46 @@
         </div>
     </div>
 
+    <!-- Modal per Opzioni Esportazione PDF -->
+    <div id="exportModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <div class="modal-icon-container">
+                    <div class="modal-icon-pulse"></div>
+                    <i class="fas fa-file-export"></i>
+                </div>
+                <div class="modal-title-group">
+                    <div class="modal-badge">Configurazione Report</div>
+                    <h2 class="modal-title">Opzioni di Stampa</h2>
+                </div>
+                <button class="modal-close" onclick="document.getElementById('exportModal').style.display='none'">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">Seleziona lo stile della planimetria da includere nel report di diagnosi:</p>
+                
+                <div class="export-options-grid">
+                    <div class="export-card" onclick="confirmPdfExport(true)">
+                        <div class="card-icon"><i class="fas fa-tags"></i></div>
+                        <div class="card-title">Report Completo</div>
+                        <div class="card-desc">Include etichette degli oggetti e legenda tecnica. Ideale per consultazione.</div>
+                    </div>
+                    <div class="export-card" onclick="confirmPdfExport(false)">
+                        <div class="card-icon"><i class="fas fa-eye-slash"></i></div>
+                        <div class="card-title">Mappa Pulita</div>
+                        <div class="card-desc">Senza etichette degli oggetti e senza legenda</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer" style="justify-content: center;">
+                <button class="btn-modal btn-modal-secondary" onclick="document.getElementById('exportModal').style.display='none'">Annulla</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // --- API Loader ---
         function loadGoogleMaps() {
@@ -349,6 +531,7 @@
         let parsedData = null;
         let infoWindow;
         let currentActiveKey = null;
+        let activeLabelMarker = null;
 
         const OPACITY_NORMAL = 0.3;
         const OPACITY_SELECTED = 0.6;
@@ -389,6 +572,15 @@
                     streetViewControl: false,
                     fullscreenControl: false,
                     maxZoom: 25
+                });
+
+                map.addListener('click', () => {
+                    if (infoWindow) infoWindow.close();
+                    if (activeLabelMarker) activeLabelMarker.setMap(null);
+                    document.querySelectorAll('.object-item').forEach(el => el.classList.remove('active'));
+                    const statsCard = document.getElementById('statsCard');
+                    if (statsCard) statsCard.style.display = 'none';
+                    currentActiveKey = null;
                 });
 
                 infoWindow = new google.maps.InfoWindow();
@@ -618,7 +810,75 @@
                 });
             }
 
-            return { metadata: { soggetto, cf, tipoDomanda, ammDisplay, concDisplay, comuni }, objects, outlierObjKeys, anomalyMsg, outlierInfo };
+            // --- Nuovi dati amministrativi ---
+            const decorrenza = dg?.querySelector('Data_Decorrenza')?.textContent || '-';
+            const durataAnni = dg?.querySelector('Durata_Anni')?.textContent || '';
+            const durataMesi = dg?.querySelector('Durata_Mesi')?.textContent || '';
+            const durataGiorni = dg?.querySelector('Durata_Giorni')?.textContent || '';
+            let durata = '-';
+            if (durataAnni || durataMesi || durataGiorni) {
+                durata = `${durataAnni ? durataAnni + 'a ' : ''}${durataMesi ? durataMesi + 'm ' : ''}${durataGiorni ? durataGiorni + 'g' : ''}`.trim();
+            }
+
+            const sedeIndirizzo = xmlDoc.querySelector('Soggetto_Non_Fisico Indirizzo')?.textContent || '';
+            const sedeCivico = xmlDoc.querySelector('Soggetto_Non_Fisico Numero_Civico')?.textContent || '';
+            const indirizzoCompleto = sedeIndirizzo ? `${sedeIndirizzo}${sedeCivico ? ', ' + sedeCivico : ''}` : '-';
+
+            const tecnicoNome = xmlDoc.querySelector('Dati_Tecnico Nome')?.textContent || '';
+            const tecnicoCognome = xmlDoc.querySelector('Dati_Tecnico Cognome')?.textContent || '';
+            const tecnicoNominativo = (tecnicoNome || tecnicoCognome) ? `${tecnicoNome} ${tecnicoCognome}`.trim() : '-';
+            const tecnicoCf = xmlDoc.querySelector('Dati_Tecnico Codice_Fiscale')?.textContent || '-';
+            const tecnicoAlbo = xmlDoc.querySelector('Dati_Tecnico Numero_Iscrizione')?.textContent || '-';
+            const tecnicoData = xmlDoc.querySelector('Dati_Tecnico Data_Rilievo_Tecnico')?.textContent || '-';
+
+            // --- Nuovi dati amministrativi (Espansione) ---
+            const categoria = dg?.querySelector('Categoria')?.textContent || '';
+            const uso = dg?.querySelector('Uso')?.textContent || '';
+            const scopiDisplay = (categoria || uso) ? `${categoria} / ${uso}` : '-';
+
+            const rlNome = xmlDoc.querySelector('Rappresentante_Legale Nome')?.textContent || '';
+            const rlCognome = xmlDoc.querySelector('Rappresentante_Legale Cognome')?.textContent || '';
+            const rlCf = xmlDoc.querySelector('Rappresentante_Legale Codice_Fiscale')?.textContent || '';
+            const rappresentante = (rlNome || rlCognome) ? `${rlNome} ${rlCognome} (${rlCf})`.trim() : '-';
+
+            const swNome = xmlDoc.querySelector('Info Applicativo')?.textContent || '-';
+            const swVersione = xmlDoc.querySelector('Info Versione_Applicativo')?.textContent || '-';
+            const swData = xmlDoc.querySelector('Info Data_Applicativo')?.textContent || '-';
+
+            // --- Nuovi dati amministrativi (Massivi) ---
+            const anticipata = dg?.querySelector('Anticipata_Occupazione')?.textContent || 'No';
+            const protPrec = dg?.querySelector('Numero_Protocollo_Precedente')?.textContent || '-';
+            const dataPrec = dg?.querySelector('Data_Domanda_Precedente')?.textContent || '-';
+
+            const telefono = xmlDoc.querySelector('Soggetto_Non_Fisico Numero_Telefono')?.textContent || '-';
+            const email = xmlDoc.querySelector('Soggetto_Non_Fisico E_Mail')?.textContent || '-';
+
+            const fondaleMin = dg?.querySelector('Fondale_Min')?.textContent || '';
+            const fondaleMax = dg?.querySelector('Fondale_Max')?.textContent || '';
+            const fondaleDisplay = (fondaleMin || fondaleMax) ? `${fondaleMin}m / ${fondaleMax}m` : '-';
+
+            const barcaTarga = dg?.querySelector('Targa_Barca')?.textContent || '';
+            const barcaTipo = dg?.querySelector('Tipo_Barca')?.textContent || '';
+            const barcaDisplay = (barcaTarga || barcaTipo) ? `${barcaTipo} (${barcaTarga})` : '-';
+
+            const barcaLung = dg?.querySelector('Lunghezza_Barca')?.textContent || '';
+            const barcaLarg = dg?.querySelector('Larghezza_Barca')?.textContent || '';
+            const barcaDim = (barcaLung || barcaLarg) ? `${barcaLung}m x ${barcaLarg}m` : '-';
+
+            // --- Estrazione finale (Deep scan) ---
+            const concRifNum = dg?.querySelector('Numero_Concessione_Rif')?.textContent || '-';
+            const concRifAnno = dg?.querySelector('Anno_Concessione_Rif')?.textContent || '';
+            const concRifTipo = dg?.querySelector('Tipo_Concessione_Rif')?.textContent || '';
+            const concRifDett = (concRifAnno || concRifTipo) ? `${concRifAnno} / ${concRifTipo}` : '-';
+
+            const accesso = dg?.querySelector('Accesso')?.textContent || '-';
+            const postiLim = dg?.querySelector('Posti_Limitati')?.textContent || '-';
+
+            const coordNord = dg?.querySelector('Coordinata_Nord')?.textContent || '';
+            const coordEst = dg?.querySelector('Coordinata_Est')?.textContent || '';
+            const coordsDich = (coordNord || coordEst) ? `${coordNord}N, ${coordEst}E` : '-';
+
+            return { metadata: { soggetto, cf, tipoDomanda, ammDisplay, concDisplay, comuni, decorrenza, durata, indirizzoCompleto, tecnicoNominativo, tecnicoCf, tecnicoAlbo, tecnicoData, scopiDisplay, rappresentante, swNome, swVersione, swData, anticipata, protPrec, dataPrec, telefono, email, fondaleDisplay, barcaDisplay, barcaDim, concRifNum, concRifDett, accesso, postiLim, coordsDich }, objects, outlierObjKeys, anomalyMsg, outlierInfo };
         }
 
         // --- Geometry Engine ---
@@ -684,6 +944,30 @@
             `;
         }
 
+        function showObjectLabel(key, position, color) {
+            if (activeLabelMarker) {
+                activeLabelMarker.setMap(null);
+            }
+            if (!map || !position) return;
+
+            activeLabelMarker = new google.maps.Marker({
+                position: position,
+                map: map,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 0
+                },
+                label: {
+                    text: key,
+                    color: color,
+                    fontWeight: 'bold',
+                    fontSize: '14px',
+                    className: 'map-label'
+                },
+                zIndex: 9999
+            });
+        }
+
         // --- Rendering ---
         function renderResults(data) {
             log("Inizio rendering dei risultati...");
@@ -713,6 +997,54 @@
                     if (document.getElementById('comuniRow')) document.getElementById('comuniRow').style.display = '';
                 }
                 if (document.getElementById('adminCard')) document.getElementById('adminCard').style.display = 'block';
+
+                // --- Nuovi campi Pratica ---
+                if (document.getElementById('meta-decorrenza')) document.getElementById('meta-decorrenza').textContent = m.decorrenza;
+                if (document.getElementById('meta-durata')) document.getElementById('meta-durata').textContent = m.durata;
+                if (document.getElementById('praticaCard')) document.getElementById('praticaCard').style.display = 'block';
+
+                // --- Nuovi campi Sede ---
+                if (document.getElementById('meta-indirizzo')) document.getElementById('meta-indirizzo').textContent = m.indirizzoCompleto;
+                if (document.getElementById('sedeCard')) document.getElementById('sedeCard').style.display = 'block';
+
+                // --- Nuovi campi Tecnico ---
+                if (document.getElementById('meta-tecnico-nome')) document.getElementById('meta-tecnico-nome').textContent = m.tecnicoNominativo;
+                if (document.getElementById('meta-tecnico-cf')) document.getElementById('meta-tecnico-cf').textContent = m.tecnicoCf;
+                if (document.getElementById('meta-tecnico-albo')) document.getElementById('meta-tecnico-albo').textContent = m.tecnicoAlbo;
+                if (document.getElementById('meta-tecnico-data')) document.getElementById('meta-tecnico-data').textContent = m.tecnicoData;
+                if (document.getElementById('tecnicoCard')) document.getElementById('tecnicoCard').style.display = 'block';
+
+                // --- Nuovi campi (Espansione) ---
+                if (document.getElementById('meta-scopi')) document.getElementById('meta-scopi').textContent = m.scopiDisplay;
+                if (document.getElementById('meta-rappresentante')) document.getElementById('meta-rappresentante').textContent = m.rappresentante;
+                if (document.getElementById('meta-software-nome')) document.getElementById('meta-software-nome').textContent = m.swNome;
+                if (document.getElementById('meta-software-versione')) document.getElementById('meta-software-versione').textContent = m.swVersione;
+                if (document.getElementById('meta-software-data')) document.getElementById('meta-software-data').textContent = m.swData;
+                if (document.getElementById('softwareCard')) document.getElementById('softwareCard').style.display = 'block';
+
+                // --- Nuovi campi massivi ---
+                if (document.getElementById('meta-anticipata')) document.getElementById('meta-anticipata').textContent = m.anticipata;
+                
+                if (document.getElementById('meta-prot-prec')) document.getElementById('meta-prot-prec').textContent = m.protPrec;
+                if (document.getElementById('meta-data-prec')) document.getElementById('meta-data-prec').textContent = m.dataPrec;
+                if (document.getElementById('rifCard')) document.getElementById('rifCard').style.display = 'block';
+
+                if (document.getElementById('meta-telefono')) document.getElementById('meta-telefono').textContent = m.telefono;
+                if (document.getElementById('meta-email')) document.getElementById('meta-email').textContent = m.email;
+
+                if (document.getElementById('meta-fondale')) document.getElementById('meta-fondale').textContent = m.fondaleDisplay;
+                if (document.getElementById('meta-barca')) document.getElementById('meta-barca').textContent = m.barcaDisplay;
+                if (document.getElementById('meta-barca-dim')) document.getElementById('meta-barca-dim').textContent = m.barcaDim;
+                if (document.getElementById('portualitaCard')) document.getElementById('portualitaCard').style.display = 'block';
+
+                // --- Campi finali ---
+                if (document.getElementById('meta-conc-rif')) document.getElementById('meta-conc-rif').textContent = m.concRifNum;
+                if (document.getElementById('meta-conc-rif-dett')) document.getElementById('meta-conc-rif-dett').textContent = m.concRifDett;
+                
+                if (document.getElementById('meta-accesso')) document.getElementById('meta-accesso').textContent = m.accesso;
+                if (document.getElementById('meta-posti-lim')) document.getElementById('meta-posti-lim').textContent = m.postiLim;
+                if (document.getElementById('meta-coords-dich')) document.getElementById('meta-coords-dich').textContent = m.coordsDich;
+                if (document.getElementById('accessiCard')) document.getElementById('accessiCard').style.display = 'block';
 
                 const list = document.getElementById('objectList');
                 if (!list) {
@@ -969,6 +1301,12 @@
                 const onMarkerClick = (pKey = null) => {
                     currentActiveKey = key;
                     
+                    // Mostra label sull'oggetto
+                    const center = latlngs.reduce((acc, curr) => ({ lat: acc.lat + curr.lat, lng: acc.lng + curr.lng }), { lat: 0, lng: 0 });
+                    center.lat /= latlngs.length;
+                    center.lng /= latlngs.length;
+                    showObjectLabel(key, center, color);
+                    
                     // Update opacities for all objects
                     objectLayers.forEach((layers, objKey) => {
                         const isCurrent = (objKey === key);
@@ -1002,19 +1340,20 @@
                 item.onclick = (e) => {
                     if (item.classList.contains('active') && !e.target.closest('.point-item')) {
                         item.classList.remove('active');
+                        if (activeLabelMarker) activeLabelMarker.setMap(null);
                         return;
                     }
-                    document.querySelectorAll('.object-item').forEach(el => el.classList.remove('active'));
-                    item.classList.add('active');
+                    
+                    // Se nascosto, lo mostriamo
+                    if (toggleBtn.classList.contains('hidden')) {
+                        toggleBtn.click();
+                    }
+
+                    onMarkerClick();
 
                     const b = new google.maps.LatLngBounds();
                     latlngs.forEach(ll => b.extend(ll));
                     map.fitBounds(b);
-
-                    document.getElementById('statsCard').style.display = 'block';
-                    document.getElementById('geo-perimeter').textContent = stats.perimeter;
-                    document.getElementById('geo-area').innerHTML = `Calc: ${stats.area}<br><span style="color: var(--accent); font-weight: bold;">Uff: ${offAreaText}</span>`;
-                    document.getElementById('geo-status').textContent = stats.status;
                 };
 
                 latlngs.forEach(ll => { if (bounds) bounds.extend(ll); });
@@ -1491,12 +1830,17 @@ document.getElementById('toggleAllBtn').onclick = () => {
         }
 
         // --- PDF Verification Button ---
-        document.getElementById('verifyXmlBtn').onclick = async () => {
+        document.getElementById('verifyXmlBtn').onclick = () => {
             if (!window.currentFile) {
                 log("Nessun file selezionato per la verifica.", 'error');
                 return;
             }
+            document.getElementById('exportModal').style.display = 'flex';
+        };
 
+        window.confirmPdfExport = async (showLabels) => {
+            document.getElementById('exportModal').style.display = 'none';
+            
             const btn = document.getElementById('verifyXmlBtn');
             const overlay = document.getElementById('loaderOverlay');
             const loaderTitle = document.getElementById('loaderTitle');
@@ -1505,16 +1849,16 @@ document.getElementById('toggleAllBtn').onclick = () => {
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generazione Report...';
             btn.disabled = true;
             
-            // Show fullscreen loading overlay
             if (overlay) {
                 if (loaderTitle) loaderTitle.textContent = "Generazione Report PDF in corso...";
                 overlay.style.display = 'flex';
             }
 
             try {
-                log("Inviando richiesta di verifica al server...", 'info');
+                log("Inviando richiesta di verifica al server (Labels: " + showLabels + ")...", 'info');
                 const formData = new FormData();
                 formData.append('file', window.currentFile);
+                formData.append('show_labels', showLabels);
 
                 const response = await fetch('/verify', {
                     method: 'POST',

@@ -1178,3 +1178,156 @@ header h1 {
   50% { transform: scale(1.1); opacity: 0.2; }
   100% { transform: scale(1); opacity: 0.5; }
 }
+
+/* Map Labels */
+.map-label {
+  padding: 4px 8px;
+  background: white !important;
+  border: 2px solid #6366f1 !important;
+  border-radius: 6px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+  white-space: nowrap !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  pointer-events: none !important;
+}
+/* Export Config Card & Segmented Control */
+.export-config-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+}
+
+.config-header {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  padding-left: 2px;
+}
+
+.segmented-control {
+  position: relative;
+  display: flex;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  padding: 3px;
+  height: 38px;
+  isolation: isolate;
+}
+
+.segment {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  z-index: 2;
+  transition: color 0.3s ease;
+}
+
+.segment i {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.segment.active {
+  color: white;
+}
+
+.segment.active i {
+  opacity: 1;
+}
+
+.segment-slider {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  height: calc(100% - 6px);
+  background: var(--primary);
+  border-radius: 8px;
+  z-index: 1;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+.segmented-control .segment:nth-child(3).active ~ .segment-slider {
+  transform: translateX(0);
+}
+
+/* Gestione spostamento slider via JS o CSS child selector */
+.segmented-control .segment:last-child.active ~ .segment-slider {
+  transform: translateX(100%);
+}
+
+
+/* Export Modal Grid Options */
+.export-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+.export-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 24px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.export-card:hover {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: var(--primary);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(99, 102, 241, 0.15);
+}
+
+.export-card .card-icon {
+  width: 54px;
+  height: 54px;
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--primary);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: 5px;
+  transition: all 0.3s;
+}
+
+.export-card:hover .card-icon {
+  background: var(--primary);
+  color: white;
+  transform: scale(1.1) rotate(5deg);
+}
+
+.export-card .card-title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.export-card .card-desc {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
