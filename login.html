@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEO-D1 | Accesso</title>
+    <link rel="stylesheet" href="index.css?v=3">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            width: 100%;
+            background: radial-gradient(circle at top right, #e0e7ff, #f8fafc);
+        }
+
+        .auth-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: var(--shadow-premium);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .auth-logo {
+            font-size: 3rem;
+            color: var(--primary);
+            filter: drop-shadow(0 0 15px var(--primary-glow));
+            margin-bottom: 1rem;
+        }
+
+        .auth-header h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .auth-header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            font-weight: 700;
+        }
+
+        .form-input {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .auth-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.9rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px var(--primary-glow);
+            margin-top: 0.5rem;
+        }
+
+        .auth-btn:hover {
+            background: #4f46e5;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--primary-glow);
+        }
+
+        .auth-footer {
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .auth-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .auth-link:hover {
+            text-decoration: underline;
+        }
+
+        .toggle-form {
+            display: none;
+        }
+        
+        .toggle-form.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .error-msg {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            border: 1px solid #fca5a5;
+            display: none;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <i class="fas fa-map-location-dot auth-logo"></i>
+                <h1>GEO-D1</h1>
+                <p>Mission Control Center</p>
+            </div>
+
+            <!-- Error message container -->
+            <div id="errorBox" class="error-msg"></div>
+
+            <!-- Login Form -->
+            <div id="loginForm" class="toggle-form active">
+                <form action="/login_action" method="POST" class="auth-form">
+                    <div class="form-group">
+                        <label for="login-email">Username o Email</label>
+                        <input type="text" id="login-email" name="email" class="form-input" required placeholder="admin o tuo@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" name="password" class="form-input" required placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="auth-btn">Accedi</button>
+                </form>
+                <div class="auth-footer">
+                    Non hai un account? <span class="auth-link" onclick="switchForm('register')">Registrati ora</span>
+                </div>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm" class="toggle-form">
+                <form action="/register_action" method="POST" class="auth-form">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label for="reg-nome">Nome</label>
+                            <input type="text" id="reg-nome" name="nome" class="form-input" required placeholder="Mario">
+                        </div>
+                        <div class="form-group">
+                            <label for="reg-cognome">Cognome</label>
+                            <input type="text" id="reg-cognome" name="cognome" class="form-input" required placeholder="Rossi">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-email">Email</label>
+                        <input type="email" id="reg-email" name="email" class="form-input" required placeholder="tuo@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-password">Password</label>
+                        <input type="password" id="reg-password" name="password" class="form-input" required placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="auth-btn" style="background: var(--accent-emerald); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
+                        Crea Account
+                    </button>
+                </form>
+                <div class="auth-footer">
+                    Hai già un account? <span class="auth-link" onclick="switchForm('login')">Accedi qui</span>
+                </div>
+            </div>
+
+            <!-- Verify 2FA Form -->
+            <div id="verify2faForm" class="toggle-form">
+                <form action="/verify_2fa" method="POST" class="auth-form">
+                    <div class="form-group">
+                        <label for="totp_code">Codice 2FA (6 cifre)</label>
+                        <input type="text" id="totp_code" name="totp_code" class="form-input" required placeholder="123456" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code">
+                    </div>
+                    <button type="submit" class="auth-btn">Verifica Accesso</button>
+                </form>
+                <div class="auth-footer">
+                    <span class="auth-link" onclick="switchForm('login')">Torna al Login</span>
+                </div>
+            </div>
+
+            <!-- Setup 2FA Modal / Form -->
+            <div id="setup2faForm" class="toggle-form">
+                <div style="text-align: center; margin-bottom: 1rem;">
+                    <h3 style="color: var(--primary); margin-bottom: 0.5rem;">Configura 2FA</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary);">Scansiona questo QR Code con Google Authenticator o Authy prima di accedere.</p>
+                </div>
+                <div id="qrcode" style="display: flex; justify-content: center; margin-bottom: 1rem; padding: 1rem; background: white; border-radius: 8px;"></div>
+                <button onclick="switchForm('login')" class="auth-btn" style="width: 100%;">Fatto, vai al Login</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mostra errore se reindirizzato con ?error=
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('error')) {
+            const errorBox = document.getElementById('errorBox');
+            errorBox.style.display = 'block';
+            errorBox.textContent = decodeURIComponent(urlParams.get('error'));
+        }
+
+        if (urlParams.has('registered')) {
+            const errorBox = document.getElementById('errorBox');
+            errorBox.style.display = 'block';
+            errorBox.style.background = '#dcfce7';
+            errorBox.style.color = '#166534';
+            errorBox.style.borderColor = '#86efac';
+            errorBox.textContent = "Registrazione completata! Configura ora il tuo 2FA.";
+            
+            const uri = urlParams.get('uri');
+            if(uri) {
+                switchForm('setup2fa');
+                new QRCode(document.getElementById("qrcode"), {
+                    text: decodeURIComponent(uri),
+                    width: 200,
+                    height: 200
+                });
+            }
+        } else if (urlParams.has('require_2fa')) {
+            switchForm('verify2fa');
+        }
+
+        function switchForm(formName) {
+            document.getElementById('errorBox').style.display = 'none'; // clear errors on switch
+            
+            // Nascondi tutti
+            document.getElementById('registerForm').classList.remove('active');
+            document.getElementById('loginForm').classList.remove('active');
+            if(document.getElementById('verify2faForm')) document.getElementById('verify2faForm').classList.remove('active');
+            if(document.getElementById('setup2faForm')) document.getElementById('setup2faForm').classList.remove('active');
+            
+            // Mostra quello richiesto
+            const target = document.getElementById(formName + 'Form');
+            if(target) target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

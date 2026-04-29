@@ -1,0 +1,1985 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEO-D1 | Analizzatore Geospeziale XML</title>
+    <link rel="stylesheet" href="index.css?v=3">
+
+    <!-- External Libraries (Removed Integrity for stability) -->
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.11.0/proj4.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="geospatial_utils_v2.js?v=3"></script>
+</head>
+
+<body>
+
+    <!-- Fullscreen Loader Overlay (Main) -->
+    <div id="mainLoader" class="modal-overlay" style="display: none; flex-direction: column;">
+        <div class="modal-icon-container">
+            <div class="modal-icon-pulse"></div>
+            <i class="fas fa-satellite fa-spin" style="color: var(--primary); font-size: 2.5rem;"></i>
+        </div>
+        <h2 style="margin-top: 1.5rem; color: var(--text-primary); font-size: 1.2rem; font-weight: 700;">Inizializzazione...</h2>
+    </div>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <button id="sidebarToggle" class="sidebar-toggle-btn" title="Espandi/Contrai">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+
+            <div class="sidebar-content">
+                <header class="sidebar-header">
+                    <div class="logo-container">
+                        <i class="fas fa-map-location-dot logo-icon"></i>
+                        <div class="logo-text">
+                            <h1>GEO-D1</h1>
+                            <span>Mission Control</span>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="sidebar-tabs">
+                    <button class="tab-btn active" data-tab="upload" title="Carica & Info">
+                        <i class="fas fa-cloud-upload-alt"></i><span>Info</span>
+                    </button>
+                    <button class="tab-btn" data-tab="objects" title="Oggetti Rilevati">
+                        <i class="fas fa-layer-group"></i><span>Oggetti</span>
+                    </button>
+                    <button class="tab-btn" data-tab="diagnostic" title="Diagnostica">
+                        <i class="fas fa-microscope"></i><span>Diagnosi</span>
+                    </button>
+                </div>
+
+                <!-- Tab: Upload & Info -->
+                <div id="tab-upload" class="tab-content active">
+                    <section class="upload-section">
+                        <div id="dropZone" class="drop-zone">
+                            <i class="fas fa-file-code fa-3x" style="color: var(--primary); margin-bottom: 1rem;"></i>
+                            <p>Trascina il file XML</p>
+                            <span style="font-size: 0.7rem; opacity: 0.6;">D1 / D3 supportati</span>
+                            <input type="file" id="fileInput" accept=".xml" style="display: none;">
+                        </div>
+                    </section>
+
+
+                    <section id="infoPanel" style="display: none;">
+                        <div class="card">
+                            <h3><i class="fas fa-user-tie"></i> Richiedente</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Soggetto</label>
+                                    <span id="meta-soggetto">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Codice Fiscale</label>
+                                    <span id="meta-cf">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="adminCard" style="display:none;">
+                            <h3><i class="fas fa-landmark"></i> Amministrazione</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Tipo Domanda</label>
+                                    <span id="meta-tipo">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Ente</label>
+                                    <span id="meta-amm">-</span>
+                                </div>
+                                <div class="info-item" id="concRow" style="display:none;">
+                                    <label>Concessione</label>
+                                    <span id="meta-conc">-</span>
+                                </div>
+                                <div class="info-item" id="comuniRow" style="display:none;">
+                                    <label>Comuni</label>
+                                    <span id="meta-comuni" style="font-size:0.75rem;">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="praticaCard" style="display:none;">
+                            <h3><i class="fas fa-file-invoice"></i> Dati Pratica</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Decorrenza</label>
+                                    <span id="meta-decorrenza">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Durata</label>
+                                    <span id="meta-durata">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Categoria / Uso</label>
+                                    <span id="meta-scopi">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Anticipata Occ.</label>
+                                    <span id="meta-anticipata">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="rifCard" style="display:none;">
+                            <h3><i class="fas fa-history"></i> Riferimenti e Concessioni</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Prot. Precedente</label>
+                                    <span id="meta-prot-prec">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Data Domanda Prec.</label>
+                                    <span id="meta-data-prec">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Concessione Rif.</label>
+                                    <span id="meta-conc-rif">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Anno/Tipo Rif.</label>
+                                    <span id="meta-conc-rif-dett">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="accessiCard" style="display:none;">
+                            <h3><i class="fas fa-universal-access"></i> Accessi e Limitazioni</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Tipo Accesso</label>
+                                    <span id="meta-accesso">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Posti Limitati</label>
+                                    <span id="meta-posti-lim">-</span>
+                                </div>
+                                <div class="info-item" style="grid-column: span 2;">
+                                    <label>Coordinate Dichiarate (N/E)</label>
+                                    <span id="meta-coords-dich">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="sedeCard" style="display:none;">
+                            <h3><i class="fas fa-map-marker-alt"></i> Sede Legale</h3>
+                            <div class="info-grid">
+                                <div class="info-item" style="grid-column: span 2;">
+                                    <label>Indirizzo</label>
+                                    <span id="meta-indirizzo">-</span>
+                                </div>
+                                <div class="info-item" style="grid-column: span 2;">
+                                    <label>Rappresentante Legale</label>
+                                    <span id="meta-rappresentante">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Telefono</label>
+                                    <span id="meta-telefono">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Email</label>
+                                    <span id="meta-email">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="portualitaCard" style="display:none;">
+                            <h3><i class="fas fa-anchor"></i> Dati Portuali / Barca</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Fondale (Min/Max)</label>
+                                    <span id="meta-fondale">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Imbarcazione</label>
+                                    <span id="meta-barca">-</span>
+                                </div>
+                                <div class="info-item" style="grid-column: span 2;">
+                                    <label>Dimensioni Barca</label>
+                                    <span id="meta-barca-dim">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="tecnicoCard" style="display:none;">
+                            <h3><i class="fas fa-hard-hat"></i> Tecnico Redattore</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Nominativo</label>
+                                    <span id="meta-tecnico-nome">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Codice Fiscale</label>
+                                    <span id="meta-tecnico-cf">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Iscrizione Albo</label>
+                                    <span id="meta-tecnico-albo">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Data Rilievo</label>
+                                    <span id="meta-tecnico-data">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="softwareCard" style="display:none;">
+                            <h3><i class="fas fa-laptop-code"></i> Dati Software</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Applicativo</label>
+                                    <span id="meta-software-nome">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Versione</label>
+                                    <span id="meta-software-versione">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Data Rilascio</label>
+                                    <span id="meta-software-data">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Tab: Objects -->
+                <div id="tab-objects" class="tab-content">
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="margin: 0;"><i class="fas fa-draw-polygon"></i> Elementi</h3>
+                            <button id="toggleAllBtn" class="btn-mini">
+                                <i class="fas fa-eye"></i> Tutti
+                            </button>
+                        </div>
+                        <div class="search-container">
+                            <input type="text" id="sidebarSearch" class="search-input" placeholder="Filtra per ID o punto...">
+                            <i class="fas fa-search search-icon"></i>
+                        </div>
+                        <div id="objectList" class="object-list">
+                            <div class="empty-state">
+                                <i class="fas fa-folder-open"></i>
+                                <p>Carica un file per vedere gli oggetti</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Diagnostic -->
+                <div id="tab-diagnostic" class="tab-content">
+                    <div id="statsCard" class="card" style="display: none;">
+                        <h3><i class="fas fa-chart-line"></i> Analisi Geometria</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Perimetro</label>
+                                <span id="geo-perimeter">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Superficie</label>
+                                <span id="geo-area">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Stato</label>
+                                <span id="geo-status">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="diagnosticPlaceholder" class="empty-state">
+                        <i class="fas fa-vial"></i>
+                        <p>Nessuna diagnosi disponibile</p>
+                    </div>
+
+                    <!-- Sezione Anomalie (Mostrata solo se presenti) -->
+                    <div id="anomalySidebarSection" style="display: none; padding: 10px;">
+                        <div class="alert alert-danger" style="background: rgba(220, 38, 38, 0.1); border: 1px solid #dc2626; border-radius: 8px; padding: 12px; margin-bottom: 15px;">
+                            <div style="display: flex; align-items: center; gap: 10px; color: #f87171; font-weight: 700; font-size: 0.85rem; margin-bottom: 8px;">
+                                <i class="fas fa-triangle-exclamation"></i>
+                                <span>ANOMALIA COORDINATE</span>
+                            </div>
+                            <p style="font-size: 0.75rem; color: #94a3b8; line-height: 1.4;">
+                                Rilevati punti espressi in gradi (WGS84) invece di metri (Gauss-Boaga).
+                            </p>
+                        </div>
+                        
+                        <div id="sidebarAnomalyList" class="affected-list" style="max-height: none;">
+                            <!-- Dinamico -->
+                        </div>
+
+                        <button id="sidebarOpenDiagBtn" class="btn-modal btn-modal-info" style="width: 100%; margin-top: 15px; font-size: 0.75rem; padding: 10px;">
+                            <i class="fas fa-map-marked-alt"></i> Apri Mappa Diagnostica
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button id="exportCsvBtn" class="btn-primary" style="display: none; width: 100%; margin-bottom: 0.5rem;">
+                    <i class="fas fa-file-csv"></i> Esporta CSV
+                </button>
+
+                <button id="exportDxfBtn" class="btn-success" style="display: none; width: 100%; margin-bottom: 0.5rem;">
+                    <i class="fas fa-drafting-compass"></i> Esporta DXF (AutoCAD)
+                </button>
+
+                <button id="verifyXmlBtn" class="btn-danger" style="display: none; width: 100%;">
+                    <i class="fas fa-file-pdf"></i> Report PDF Professionale
+                </button>
+
+                <div class="footer-note">
+                    &copy; 2026 Nuvola Rossa • v2.0 Premium
+                </div>
+
+                <div id="userProfile" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.03); border: 1px solid var(--glass-border); border-radius: 8px; margin-top: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem;" id="userInitials">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 0.8rem; color: var(--text-primary);" id="userNameDisplay">Caricamento...</div>
+                            <div style="font-size: 0.65rem; color: var(--text-secondary);" id="userEmailDisplay">...</div>
+                        </div>
+                    </div>
+                    <a href="/logout" class="btn-mini" style="color: var(--accent-rose); text-decoration: none; padding: 6px; border-radius: 6px; background: rgba(244, 63, 94, 0.1);" title="Logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div id="map"></div>
+
+            <div class="map-overlay">
+                <!-- Map Type Toggle -->
+                <div class="floating-panel">
+                    <div class="btn-group">
+                        <button id="mapGrid" class="btn active">Mappa</button>
+                        <button id="mapSat" class="btn">Satellite</button>
+                    </div>
+                </div>
+
+                <!-- Layer Controls -->
+                <div id="mapLayersPanel" class="floating-panel">
+                    <div class="panel-header">
+                        <i class="fas fa-layer-group"></i> Layer SID
+                    </div>
+                    <div class="layer-item">
+                        <input type="checkbox" id="sidDividenteToggle">
+                        <label for="sidDividenteToggle">Dividente Demaniale</label>
+                    </div>
+                    <div class="layer-item">
+                        <input type="checkbox" id="sidCostaToggle">
+                        <label for="sidCostaToggle">Dividente Costa</label>
+                    </div>
+                    <div class="layer-item">
+                        <input type="checkbox" id="sidConcToggle">
+                        <label for="sidConcToggle">Concessioni</label>
+                    </div>
+                    <div class="layer-item">
+                        <input type="checkbox" id="sidAdmToggle">
+                        <label for="sidAdmToggle">Amministrazioni</label>
+                    </div>
+                    <div class="panel-footer" style="padding: 5px 7px; background: rgba(255,251,235,0.05); border-radius: 5px; font-size: 0.65rem; color: #fde68a; margin-top: 5px;">
+                        <i class="fas fa-info-circle"></i> Area: <strong>Casal Velino</strong>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Fullscreen Loading Overlay per generazione PDF -->
+    <div id="loaderOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.9); z-index: 9999; backdrop-filter: blur(15px); flex-direction: column; justify-content: center; align-items: center; color: white; font-family: 'Inter', sans-serif;">
+        <div class="loader-visual">
+            <i class="fas fa-circle-notch fa-spin fa-4x" style="color: var(--primary);"></i>
+            <div class="loader-glow"></div>
+        </div>
+        <h2 id="loaderTitle" style="margin: 20px 0 5px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; font-size: 1.1rem;">Elaborazione</h2>
+        <p id="loaderMessage" style="color: var(--text-secondary); font-size: 0.85rem;">Sincronizzazione dei dati spaziali...</p>
+    </div>
+    
+    <!-- Modal per Anomalie Coordinate -->
+    <div id="anomalyModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-icon-container">
+                    <div class="modal-icon-pulse"></div>
+                    <i class="fas fa-satellite-dish"></i>
+                </div>
+                <div class="modal-title-group">
+                    <div class="modal-badge">Segnalazione Diagnostica</div>
+                    <h2 class="modal-title">Geometrie Fuori Range</h2>
+                </div>
+                <button class="modal-close" onclick="document.getElementById('anomalyModal').style.display='none'">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="anomaly-intro">
+                    <p>Attenzione! Sono state rilevate coordinate incongruenti con il sistema <strong>Gauss-Boaga Roma40</strong>. Probabilmente sono stati inseriti gradi decimali invece di metri.</p>
+                </div>
+
+                <div class="affected-container">
+                    <div class="affected-header">
+                        <i class="fas fa-eye-slash"></i>
+                        <span>Oggetti non rappresentabili sulla mappa:</span>
+                    </div>
+                    <div id="anomalyObjectList" class="affected-list">
+                        <!-- Generato dinamicamente -->
+                    </div>
+                </div>
+
+                <div class="modal-info-box">
+                    <i class="fas fa-lightbulb"></i>
+                    <div>
+                        <strong>Suggerimento:</strong> Controlla i punti elencati sopra. Le coordinate N dovrebbero essere circa 4.000.000m, non numeri piccoli come 40.xx.
+                        <br><br>
+                        <i class="fas fa-file-pdf"></i> <strong>Per maggiori dettagli e la diagnostica completa, effettua l'export del PDF tramite il pulsante rosso nel pannello laterale.</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-modal btn-modal-secondary" onclick="document.getElementById('anomalyModal').style.display='none'">Prosegui comunque</button>
+                <button id="openDiagMapBtn" class="btn-modal btn-modal-info">
+                    <i class="fas fa-map-marked-alt"></i>
+                    Mappa Diagnostica
+                </button>
+                <button onclick="document.getElementById('verifyXmlBtn').click(); document.getElementById('anomalyModal').style.display='none';" class="btn-modal btn-modal-primary">
+                    <i class="fas fa-file-pdf"></i>
+                    Genera Report PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal per Opzioni Esportazione PDF -->
+    <div id="exportModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <div class="modal-icon-container">
+                    <div class="modal-icon-pulse"></div>
+                    <i class="fas fa-file-export"></i>
+                </div>
+                <div class="modal-title-group">
+                    <div class="modal-badge">Configurazione Report</div>
+                    <h2 class="modal-title">Opzioni di Stampa</h2>
+                </div>
+                <button class="modal-close" onclick="document.getElementById('exportModal').style.display='none'">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">Seleziona lo stile della planimetria da includere nel report di diagnosi:</p>
+                
+                <div class="export-options-grid">
+                    <div class="export-card" onclick="confirmPdfExport(true)">
+                        <div class="card-icon"><i class="fas fa-tags"></i></div>
+                        <div class="card-title">Report Completo</div>
+                        <div class="card-desc">Include etichette degli oggetti e legenda tecnica. Ideale per consultazione.</div>
+                    </div>
+                    <div class="export-card" onclick="confirmPdfExport(false)">
+                        <div class="card-icon"><i class="fas fa-eye-slash"></i></div>
+                        <div class="card-title">Mappa Pulita</div>
+                        <div class="card-desc">Senza etichette degli oggetti e senza legenda</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer" style="justify-content: center;">
+                <button class="btn-modal btn-modal-secondary" onclick="document.getElementById('exportModal').style.display='none'">Annulla</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- API Loader ---
+        function loadGoogleMaps() {
+            const key = "AIzaSyDfCPsN9FMueurdBHsjT2FvRlLVas0VIgU";
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&callback=initMap`;
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+        }
+
+
+
+        // --- Logging Helper ---
+        function log(msg, type = 'info') {
+            console.log(`[${type.toUpperCase()}] ${msg}`);
+        }
+
+        window.onerror = function (msg, url, line, col, err) {
+            log(`CRITICAL@${line}:${col}: ${msg}`, 'error');
+            if (err && err.stack) console.error('Stack:', err.stack);
+        };
+
+        // --- State ---
+        let map;
+        let boundaryManager;
+        let currentLayers = [];
+        let pointMarkers = new Map();
+        let objectLayers = new Map();
+        let parsedData = null;
+        let infoWindow;
+        let currentActiveKey = null;
+        let activeLabelMarker = null;
+
+        const OPACITY_NORMAL = 0.3;
+        const OPACITY_SELECTED = 0.6;
+
+        // --- Marker Scaling Logic ---
+        // --- Marker Scaling Logic ---
+        function updateMarkerSizes() {
+            if (!map || pointMarkers.size === 0) return;
+            const zoom = map.getZoom();
+            const center = map.getCenter();
+            if (!center) return;
+
+            // Meters per pixel at current zoom and latitude
+            const metersPerPx = (156543.03392 * Math.cos(center.lat() * Math.PI / 180)) / Math.pow(2, zoom);
+
+            pointMarkers.forEach(marker => {
+                if (marker.setRadius && marker.baseRadius) {
+                    marker.setRadius(marker.baseRadius * metersPerPx);
+                }
+            });
+        }
+
+        // --- Init ---
+        function initMap() {
+            log("Inizializzazione Google Maps...");
+
+            if (typeof google === 'undefined') {
+                log("ERRORE: Google Maps non caricato!", 'error');
+                return;
+            }
+
+            try {
+                map = new google.maps.Map(document.getElementById('map'), {
+                    center: { lat: 41.9, lng: 12.5 },
+                    zoom: 6,
+                    mapTypeId: google.maps.MapTypeId.ROADMAP,
+                    mapTypeControl: false,
+                    streetViewControl: false,
+                    fullscreenControl: false,
+                    maxZoom: 25
+                });
+
+                map.addListener('click', () => {
+                    if (infoWindow) infoWindow.close();
+                    if (activeLabelMarker) activeLabelMarker.setMap(null);
+                    document.querySelectorAll('.object-item').forEach(el => el.classList.remove('active'));
+                    const statsCard = document.getElementById('statsCard');
+                    if (statsCard) statsCard.style.display = 'none';
+                    currentActiveKey = null;
+                });
+
+                infoWindow = new google.maps.InfoWindow();
+
+                document.getElementById('mapGrid').onclick = () => {
+                    map.setMapTypeId(google.maps.MapTypeId.ROADMAP);
+                    document.getElementById('mapGrid').classList.add('active');
+                    document.getElementById('mapSat').classList.remove('active');
+                };
+
+                document.getElementById('mapSat').onclick = () => {
+                    map.setMapTypeId(google.maps.MapTypeId.SATELLITE);
+                    document.getElementById('mapSat').classList.add('active');
+                    document.getElementById('mapGrid').classList.remove('active');
+                };
+                log("Mappa pronta.");
+
+                map.addListener('zoom_changed', updateMarkerSizes);
+
+                // Initialize Boundary Manager
+                boundaryManager = new BoundariesManager(map);
+                document.getElementById('sidDividenteToggle').onchange = () => boundaryManager.toggle('sid_dividente');
+                document.getElementById('sidCostaToggle').onchange = () => boundaryManager.toggle('sid_costa_new');
+                document.getElementById('sidConcToggle').onchange = () => boundaryManager.toggle('sid_concessioni');
+                document.getElementById('sidAdmToggle').onchange = () => boundaryManager.toggle('sid_amministrazioni');
+
+
+            } catch (e) {
+                log("Errore initMap: " + e.message, 'error');
+            }
+        }
+
+        // --- XML Parsing ---
+        function parseD1(xmlText) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+            if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+                console.error("XML Parsing Error:", xmlDoc.getElementsByTagName("parsererror")[0].innerText);
+                alert("Errore nel parsing del file XML. Controlla la console.");
+                return null;
+            }
+
+            const soggettoNode = xmlDoc.querySelector('Soggetto_Non_Fisico Denominazione') ||
+                xmlDoc.querySelector('Soggetto_Non_Fisico Denominazione_Abbreviata');
+            const soggetto = soggettoNode?.textContent || "Sconosciuto";
+
+            const cfNode = xmlDoc.querySelector('Soggetto_Non_Fisico Codice_Fiscale') ||
+                xmlDoc.querySelector('Rappresentante_Legale Codice_Fiscale');
+            const cf = cfNode?.textContent || "-";
+
+            // Extract Official surface/volume info from Elaborato rows
+            const surfaceInfo = new Map();
+            const elaborateRows = xmlDoc.querySelectorAll('Riga_Elaborato');
+            elaborateRows.forEach(e => {
+                const pref = e.querySelector('Prefisso_Oggetto')?.textContent || "";
+                const id = e.querySelector('Identificativo_Oggetto')?.textContent || "";
+                const sup = e.querySelector('Superficie')?.textContent || "";
+                const vol = e.querySelector('Volumetria')?.textContent || "";
+                if (pref || id) {
+                    surfaceInfo.set(`${pref}${id}`, { 
+                        superficie: sup ? parseFloat(sup.replace(',', '.')) : null,
+                        volumetria: vol ? parseFloat(vol.replace(',', '.')) : null
+                    });
+                }
+            });
+
+            const points = [];
+            const objects = new Map();
+
+            const righe = xmlDoc.querySelectorAll('Riga_Rilievo');
+            righe.forEach(r => {
+                const id = r.querySelector('Identificativo_Punto')?.textContent;
+                const pref = r.querySelector('Prefisso')?.textContent;
+                const objId = r.querySelector('Identificativo')?.textContent;
+                
+                // Cerca coordinate in diversi possibili tag
+                const gbN = r.querySelector('Gauss-Boaga Coordinata_Nord')?.textContent || r.querySelector('Coordinata_Nord')?.textContent;
+                const gbE = r.querySelector('Gauss-Boaga Coordinata_Est')?.textContent || r.querySelector('Coordinata_Est')?.textContent;
+                const wgsLat = r.querySelector('Coordinate_WGS84 Latitudine_Nord')?.textContent || r.querySelector('Latitudine_Nord')?.textContent;
+                const wgsLng = r.querySelector('Coordinate_WGS84 Longitudine_Est')?.textContent || r.querySelector('Longitudine_Est')?.textContent;
+
+                let n = parseFloat((gbN || "").replace(',', '.'));
+                let e = parseFloat((gbE || "").replace(',', '.'));
+                let isWgsInput = false;
+
+                // Se non ci sono coordinate GB, prova con WGS84 (ma segnalale come anomalia)
+                if (isNaN(n) || isNaN(e)) {
+                    n = parseFloat((wgsLat || "").replace(',', '.'));
+                    e = parseFloat((wgsLng || "").replace(',', '.'));
+                    if (!isNaN(n) && !isNaN(e)) isWgsInput = true;
+                }
+
+                if (!isNaN(n) && !isNaN(e)) {
+                    // Se è WGS84, usiamo i valori come lat/lng direttamente per la conversione inversa 
+                    // o li teniamo come "outlier" se sono palesemente fuori scala metrica
+                    const coords = isWgsInput ? { lat: n, lng: e } : convertToWgs84(n, e, 'peninsula');
+                    
+                    if (coords) {
+                        const { lat, lng } = coords;
+                        const point = { id, pref, objId, n, e, lat, lng, isOutlier: isWgsInput };
+                        points.push(point);
+
+                        const key = `${pref}${objId}`;
+                        if (!objects.has(key)) {
+                            const info = surfaceInfo.get(key) || { superficie: null, volumetria: null };
+                            objects.set(key, {
+                                points: [],
+                                officialArea: info.superficie,
+                                officialVolume: info.volumetria,
+                                hasWgsInput: isWgsInput
+                            });
+                        }
+                        objects.get(key).points.push(point);
+                    }
+                }
+            });
+
+            // --- Controllo Anomalie Coordinate (Variazioni > 50 km = outlier) ---
+            let anomalyMsg  = null;
+            let outlierInfo = null; // { objects: [{key, ptId, n, e}], deltaE, deltaN }
+            if (points.length > 1) {
+                const ns = points.map(p => p.n);
+                const es = points.map(p => p.e);
+                const minN = Math.min(...ns), maxN = Math.max(...ns);
+                const minE = Math.min(...es), maxE = Math.max(...es);
+                const deltaN = maxN - minN, deltaE = maxE - minE;
+
+                // Calcola mediana
+                const nSorted = [...ns].sort((a,b)=>a-b);
+                const eSorted = [...es].sort((a,b)=>a-b);
+                const nMed = nSorted[Math.floor(nSorted.length/2)];
+                const eMed = eSorted[Math.floor(eSorted.length/2)];
+
+                const isRangeAnomaly = deltaN > 50000 || deltaE > 50000;
+                const isAbsoluteAnomaly = !((nMed > 3800000 && nMed < 5500000) && (eMed > 1000000 && eMed < 3000000));
+
+                if (isRangeAnomaly || isAbsoluteAnomaly) {
+                    // Trova i punti lontani dalla mediana
+                    const withDist = points.map(p => {
+                        let calcN = p.n;
+                        let calcE = p.e;
+                        
+                        // Se è in gradi, convertiamo in metri GB per il calcolo della distanza dal cluster
+                        if (p.isOutlier) {
+                            // Usa il fuso corretto in base alla posizione del cluster
+                            const isEast = eMed > 2000000;
+                            const gbProj = getProjString(isEast, 'peninsula');
+                            const gb = proj4('EPSG:4326', gbProj, [p.lng, p.lat]);
+                            calcE = gb[0];
+                            calcN = gb[1];
+                        }
+
+                        const dist = Math.sqrt((calcN - nMed)**2 + (calcE - eMed)**2);
+                        return { ...p, dist, calcN, calcE };
+                    });
+                    
+                    // Outlier: o già marcati come WGS, o distanti > 1km dal cluster corretto
+                    const outlierPts = withDist.filter(p => {
+                        if (p.isOutlier) return true;
+                        if (isRangeAnomaly) return p.dist > 1000;
+                        return !((p.n > 3800000 && p.n < 5500000) && (p.e > 1000000 && p.e < 3000000));
+                    });
+
+                    // Raggruppa per oggetto
+                    const outlierByObj = {};
+                    outlierPts.forEach(p => {
+                        const k = `${p.pref}${p.objId}`;
+                        if (!outlierByObj[k]) outlierByObj[k] = [];
+                        outlierByObj[k].push({ ptId: p.id, n: p.n, e: p.e, dist: p.dist });
+                    });
+
+                    const objNames = Object.keys(outlierByObj);
+                    anomalyMsg = "detected";
+                    outlierInfo = {
+                        objects: outlierByObj,
+                        objNames,
+                        allOutlierPts: outlierPts,
+                        deltaE: deltaE.toFixed(0),
+                        deltaN: deltaN.toFixed(0),
+                        nMed, eMed
+                    };
+                }
+            }
+
+            // --- Tipo domanda ---
+            const rootTag = xmlDoc.documentElement.tagName;
+            const tipoDomanda = rootTag.replace('Domanda_', '') || '-';
+
+            // --- Validazione Tipo Domanda ---
+            if (tipoDomanda !== 'D1' && tipoDomanda !== 'D3') {
+                alert("Errore: la web app verifica soltanto la correttezza dei file XML D1 e D3.");
+                return null;
+            }
+
+            // --- Dati generali ---
+            const dg = xmlDoc.querySelector('Dati_Generali_Rilascio') ||
+                       xmlDoc.querySelector('Dati_Generali_Variazione');
+            const ammEl = dg?.querySelector('Amministrazione_Competente');
+            const tipoAmmEl = dg?.querySelector('Tipo_Amministrazione_Competente');
+            const numConcEl = dg?.querySelector('Numero_Concessione_Rif');
+            const annoConcEl = dg?.querySelector('Anno_Concessione_Rif');
+
+            const ammCod = ammEl?.textContent?.trim() || '-';
+            const tipoAmm = tipoAmmEl?.textContent?.trim() || '';
+            const ammDisplay = tipoAmm ? `${tipoAmm} (${ammCod})` : ammCod;
+            const numConc = numConcEl?.textContent?.trim() || '';
+            const annoConc = annoConcEl?.textContent?.trim() || '';
+            const concDisplay = (numConc && annoConc) ? `${numConc}/${annoConc}` : null;
+
+            // --- Comuni catastali unici ---
+            const comuniSet = new Set();
+            xmlDoc.querySelectorAll('Riferimento_Catastale Codice_Comune').forEach(el => {
+                if (el.textContent.trim()) comuniSet.add(el.textContent.trim());
+            });
+            const comuni = [...comuniSet];
+
+            // Tag outlier points in objects
+            const outlierObjKeys = new Set(outlierInfo ? outlierInfo.objNames : []);
+            if (outlierInfo) {
+                outlierInfo.objNames.forEach(objKey => {
+                    if (objects.has(objKey)) {
+                        // Mark every point in this object
+                        objects.get(objKey).points.forEach(p => p.isOutlier = true);
+                        objects.get(objKey).hasOutlier = true;
+                    }
+                });
+            }
+
+            // --- Nuovi dati amministrativi ---
+            const decorrenza = dg?.querySelector('Data_Decorrenza')?.textContent || '-';
+            const durataAnni = dg?.querySelector('Durata_Anni')?.textContent || '';
+            const durataMesi = dg?.querySelector('Durata_Mesi')?.textContent || '';
+            const durataGiorni = dg?.querySelector('Durata_Giorni')?.textContent || '';
+            let durata = '-';
+            if (durataAnni || durataMesi || durataGiorni) {
+                durata = `${durataAnni ? durataAnni + 'a ' : ''}${durataMesi ? durataMesi + 'm ' : ''}${durataGiorni ? durataGiorni + 'g' : ''}`.trim();
+            }
+
+            const sedeIndirizzo = xmlDoc.querySelector('Soggetto_Non_Fisico Indirizzo')?.textContent || '';
+            const sedeCivico = xmlDoc.querySelector('Soggetto_Non_Fisico Numero_Civico')?.textContent || '';
+            const indirizzoCompleto = sedeIndirizzo ? `${sedeIndirizzo}${sedeCivico ? ', ' + sedeCivico : ''}` : '-';
+
+            const tecnicoNome = xmlDoc.querySelector('Dati_Tecnico Nome')?.textContent || '';
+            const tecnicoCognome = xmlDoc.querySelector('Dati_Tecnico Cognome')?.textContent || '';
+            const tecnicoNominativo = (tecnicoNome || tecnicoCognome) ? `${tecnicoNome} ${tecnicoCognome}`.trim() : '-';
+            const tecnicoCf = xmlDoc.querySelector('Dati_Tecnico Codice_Fiscale')?.textContent || '-';
+            const tecnicoAlbo = xmlDoc.querySelector('Dati_Tecnico Numero_Iscrizione')?.textContent || '-';
+            const tecnicoData = xmlDoc.querySelector('Dati_Tecnico Data_Rilievo_Tecnico')?.textContent || '-';
+
+            // --- Nuovi dati amministrativi (Espansione) ---
+            const categoria = dg?.querySelector('Categoria')?.textContent || '';
+            const uso = dg?.querySelector('Uso')?.textContent || '';
+            const scopiDisplay = (categoria || uso) ? `${categoria} / ${uso}` : '-';
+
+            const rlNome = xmlDoc.querySelector('Rappresentante_Legale Nome')?.textContent || '';
+            const rlCognome = xmlDoc.querySelector('Rappresentante_Legale Cognome')?.textContent || '';
+            const rlCf = xmlDoc.querySelector('Rappresentante_Legale Codice_Fiscale')?.textContent || '';
+            const rappresentante = (rlNome || rlCognome) ? `${rlNome} ${rlCognome} (${rlCf})`.trim() : '-';
+
+            const swNome = xmlDoc.querySelector('Info Applicativo')?.textContent || '-';
+            const swVersione = xmlDoc.querySelector('Info Versione_Applicativo')?.textContent || '-';
+            const swData = xmlDoc.querySelector('Info Data_Applicativo')?.textContent || '-';
+
+            // --- Nuovi dati amministrativi (Massivi) ---
+            const anticipata = dg?.querySelector('Anticipata_Occupazione')?.textContent || 'No';
+            const protPrec = dg?.querySelector('Numero_Protocollo_Precedente')?.textContent || '-';
+            const dataPrec = dg?.querySelector('Data_Domanda_Precedente')?.textContent || '-';
+
+            const telefono = xmlDoc.querySelector('Soggetto_Non_Fisico Numero_Telefono')?.textContent || '-';
+            const email = xmlDoc.querySelector('Soggetto_Non_Fisico E_Mail')?.textContent || '-';
+
+            const fondaleMin = dg?.querySelector('Fondale_Min')?.textContent || '';
+            const fondaleMax = dg?.querySelector('Fondale_Max')?.textContent || '';
+            const fondaleDisplay = (fondaleMin || fondaleMax) ? `${fondaleMin}m / ${fondaleMax}m` : '-';
+
+            const barcaTarga = dg?.querySelector('Targa_Barca')?.textContent || '';
+            const barcaTipo = dg?.querySelector('Tipo_Barca')?.textContent || '';
+            const barcaDisplay = (barcaTarga || barcaTipo) ? `${barcaTipo} (${barcaTarga})` : '-';
+
+            const barcaLung = dg?.querySelector('Lunghezza_Barca')?.textContent || '';
+            const barcaLarg = dg?.querySelector('Larghezza_Barca')?.textContent || '';
+            const barcaDim = (barcaLung || barcaLarg) ? `${barcaLung}m x ${barcaLarg}m` : '-';
+
+            // --- Estrazione finale (Deep scan) ---
+            const concRifNum = dg?.querySelector('Numero_Concessione_Rif')?.textContent || '-';
+            const concRifAnno = dg?.querySelector('Anno_Concessione_Rif')?.textContent || '';
+            const concRifTipo = dg?.querySelector('Tipo_Concessione_Rif')?.textContent || '';
+            const concRifDett = (concRifAnno || concRifTipo) ? `${concRifAnno} / ${concRifTipo}` : '-';
+
+            const accesso = dg?.querySelector('Accesso')?.textContent || '-';
+            const postiLim = dg?.querySelector('Posti_Limitati')?.textContent || '-';
+
+            const coordNord = dg?.querySelector('Coordinata_Nord')?.textContent || '';
+            const coordEst = dg?.querySelector('Coordinata_Est')?.textContent || '';
+            const coordsDich = (coordNord || coordEst) ? `${coordNord}N, ${coordEst}E` : '-';
+
+            return { metadata: { soggetto, cf, tipoDomanda, ammDisplay, concDisplay, comuni, decorrenza, durata, indirizzoCompleto, tecnicoNominativo, tecnicoCf, tecnicoAlbo, tecnicoData, scopiDisplay, rappresentante, swNome, swVersione, swData, anticipata, protPrec, dataPrec, telefono, email, fondaleDisplay, barcaDisplay, barcaDim, concRifNum, concRifDett, accesso, postiLim, coordsDich }, objects, outlierObjKeys, anomalyMsg, outlierInfo };
+        }
+
+        // --- Geometry Engine ---
+        function calculateStats(points, officialArea = null, officialVolume = null) {
+            if (!points || points.length === 0) return null;
+
+            if (points.length === 1) {
+                return { perimeter: "0.00 m", area: "0.00 m²", status: "PUNTO", isClosed: false, officialArea, officialVolume };
+            }
+
+            let perimeter = 0;
+            for (let i = 0; i < points.length - 1; i++) {
+                perimeter += Math.sqrt(Math.pow(points[i + 1].n - points[i].n, 2) + Math.pow(points[i + 1].e - points[i].e, 2));
+            }
+
+            if (points.length === 2) {
+                return { perimeter: perimeter.toFixed(2) + " m", area: "0.00 m²", status: "SEGMENTO", isClosed: false, officialArea, officialVolume };
+            }
+
+            const first = points[0];
+            const last = points[points.length - 1];
+            const distClosure = Math.sqrt(Math.pow(first.n - last.n, 2) + Math.pow(first.e - last.e, 2));
+            const isClosed = distClosure < 0.1;
+
+            let area = 0;
+            if (isClosed && points.length > 2) {
+                for (let i = 0; i < points.length - 1; i++) {
+                    area += (points[i].e * points[i + 1].n) - (points[i + 1].e * points[i].n);
+                }
+                area = Math.abs(area) / 2;
+            }
+
+            return {
+                perimeter: perimeter.toFixed(2) + " m",
+                area: area > 0 ? area.toFixed(2) + " m²" : "N/D",
+                status: isClosed ? "CHIUSA" : "APERTA",
+                isClosed,
+                officialArea,
+                officialVolume
+            };
+        }
+
+        // --- Helpers ---
+        function getPointHtml(p, key, color) {
+            return `
+                <div style="font-family: 'Inter', sans-serif; min-width: 200px; padding: 4px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; border-bottom: 2px solid ${color}; padding-bottom: 6px;">
+                        <div style="background: ${color}; color: white; border-radius: 4px; padding: 2px 6px; font-weight: 800; font-size: 0.7rem;">PUNTO</div>
+                        <div style="font-weight: 700; color: var(--text); font-size: 0.9rem;">${p.id}</div>
+                        <div style="margin-left: auto; font-size: 0.7rem; color: var(--text-muted);">Oggetto ${key}</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="background: #f1f5f9; padding: 6px; border-radius: 6px;">
+                            <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Gauss-Boaga (N, E)</div>
+                            <div style="font-weight: 600; font-size: 0.8rem; font-family: monospace;">${p.n.toFixed(2)}, ${p.e.toFixed(2)}</div>
+                        </div>
+                        <div style="background: #eff6ff; padding: 6px; border-radius: 6px;">
+                            <div style="font-size: 0.65rem; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">WGS84 (Lat, Lng)</div>
+                            <div style="font-weight: 600; font-size: 0.8rem; font-family: monospace;">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showObjectLabel(key, position, color) {
+            if (activeLabelMarker) {
+                activeLabelMarker.setMap(null);
+            }
+            if (!map || !position) return;
+
+            activeLabelMarker = new google.maps.Marker({
+                position: position,
+                map: map,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 0
+                },
+                label: {
+                    text: key,
+                    color: color,
+                    fontWeight: 'bold',
+                    fontSize: '14px',
+                    className: 'map-label'
+                },
+                zIndex: 9999
+            });
+        }
+
+        // --- Rendering ---
+        function renderResults(data) {
+            log("Inizio rendering dei risultati...");
+            try {
+                if (!document.getElementById('infoPanel')) {
+                   log("ERRORE: infoPanel non trovato nell'HTML", 'error');
+                }
+                document.getElementById('infoPanel').style.display = 'block';
+                
+                // Switch to objects tab
+                const objTabBtn = document.querySelector('[data-tab="objects"]');
+                if (objTabBtn) objTabBtn.click();
+
+                document.getElementById('meta-soggetto').textContent = data.metadata.soggetto || '-';
+                document.getElementById('meta-cf').textContent = data.metadata.cf || '-';
+
+                const m = data.metadata;
+                if (document.getElementById('meta-tipo')) document.getElementById('meta-tipo').textContent = m.tipoDomanda || '-';
+                if (document.getElementById('meta-amm')) document.getElementById('meta-amm').textContent = m.ammDisplay || '-';
+                
+                if (m.concDisplay && document.getElementById('meta-conc')) {
+                    document.getElementById('meta-conc').textContent = m.concDisplay;
+                    if (document.getElementById('concRow')) document.getElementById('concRow').style.display = '';
+                }
+                if (m.comuni && m.comuni.length > 0 && document.getElementById('meta-comuni')) {
+                    document.getElementById('meta-comuni').textContent = m.comuni.join(', ');
+                    if (document.getElementById('comuniRow')) document.getElementById('comuniRow').style.display = '';
+                }
+                if (document.getElementById('adminCard')) document.getElementById('adminCard').style.display = 'block';
+
+                // --- Nuovi campi Pratica ---
+                if (document.getElementById('meta-decorrenza')) document.getElementById('meta-decorrenza').textContent = m.decorrenza;
+                if (document.getElementById('meta-durata')) document.getElementById('meta-durata').textContent = m.durata;
+                if (document.getElementById('praticaCard')) document.getElementById('praticaCard').style.display = 'block';
+
+                // --- Nuovi campi Sede ---
+                if (document.getElementById('meta-indirizzo')) document.getElementById('meta-indirizzo').textContent = m.indirizzoCompleto;
+                if (document.getElementById('sedeCard')) document.getElementById('sedeCard').style.display = 'block';
+
+                // --- Nuovi campi Tecnico ---
+                if (document.getElementById('meta-tecnico-nome')) document.getElementById('meta-tecnico-nome').textContent = m.tecnicoNominativo;
+                if (document.getElementById('meta-tecnico-cf')) document.getElementById('meta-tecnico-cf').textContent = m.tecnicoCf;
+                if (document.getElementById('meta-tecnico-albo')) document.getElementById('meta-tecnico-albo').textContent = m.tecnicoAlbo;
+                if (document.getElementById('meta-tecnico-data')) document.getElementById('meta-tecnico-data').textContent = m.tecnicoData;
+                if (document.getElementById('tecnicoCard')) document.getElementById('tecnicoCard').style.display = 'block';
+
+                // --- Nuovi campi (Espansione) ---
+                if (document.getElementById('meta-scopi')) document.getElementById('meta-scopi').textContent = m.scopiDisplay;
+                if (document.getElementById('meta-rappresentante')) document.getElementById('meta-rappresentante').textContent = m.rappresentante;
+                if (document.getElementById('meta-software-nome')) document.getElementById('meta-software-nome').textContent = m.swNome;
+                if (document.getElementById('meta-software-versione')) document.getElementById('meta-software-versione').textContent = m.swVersione;
+                if (document.getElementById('meta-software-data')) document.getElementById('meta-software-data').textContent = m.swData;
+                if (document.getElementById('softwareCard')) document.getElementById('softwareCard').style.display = 'block';
+
+                // --- Nuovi campi massivi ---
+                if (document.getElementById('meta-anticipata')) document.getElementById('meta-anticipata').textContent = m.anticipata;
+                
+                if (document.getElementById('meta-prot-prec')) document.getElementById('meta-prot-prec').textContent = m.protPrec;
+                if (document.getElementById('meta-data-prec')) document.getElementById('meta-data-prec').textContent = m.dataPrec;
+                if (document.getElementById('rifCard')) document.getElementById('rifCard').style.display = 'block';
+
+                if (document.getElementById('meta-telefono')) document.getElementById('meta-telefono').textContent = m.telefono;
+                if (document.getElementById('meta-email')) document.getElementById('meta-email').textContent = m.email;
+
+                if (document.getElementById('meta-fondale')) document.getElementById('meta-fondale').textContent = m.fondaleDisplay;
+                if (document.getElementById('meta-barca')) document.getElementById('meta-barca').textContent = m.barcaDisplay;
+                if (document.getElementById('meta-barca-dim')) document.getElementById('meta-barca-dim').textContent = m.barcaDim;
+                if (document.getElementById('portualitaCard')) document.getElementById('portualitaCard').style.display = 'block';
+
+                // --- Campi finali ---
+                if (document.getElementById('meta-conc-rif')) document.getElementById('meta-conc-rif').textContent = m.concRifNum;
+                if (document.getElementById('meta-conc-rif-dett')) document.getElementById('meta-conc-rif-dett').textContent = m.concRifDett;
+                
+                if (document.getElementById('meta-accesso')) document.getElementById('meta-accesso').textContent = m.accesso;
+                if (document.getElementById('meta-posti-lim')) document.getElementById('meta-posti-lim').textContent = m.postiLim;
+                if (document.getElementById('meta-coords-dich')) document.getElementById('meta-coords-dich').textContent = m.coordsDich;
+                if (document.getElementById('accessiCard')) document.getElementById('accessiCard').style.display = 'block';
+
+                const list = document.getElementById('objectList');
+                if (!list) {
+                    log("ERRORE: objectList non trovato", 'error');
+                    return;
+                }
+                list.innerHTML = '';
+
+                // Clear layers safely
+                currentLayers.forEach(l => { if (l && l.setMap) l.setMap(null); });
+                currentLayers = [];
+                pointMarkers.clear();
+                objectLayers.clear();
+
+                if (!map || typeof google === 'undefined') {
+                    log("AVVISO: Mappa non pronta, disegno rimandato.", 'warn');
+                    // We still populate the list, but skip map fit
+                }
+
+                const bounds = (typeof google !== 'undefined') ? new google.maps.LatLngBounds() : null;
+                const objKeys = Array.from(data.objects.keys());
+                const outlierObjKeys = data.outlierObjKeys || new Set();
+
+                log(`Rendering di ${data.objects.size} oggetti...`);
+                data.objects.forEach((objData, key) => {
+                    try {
+                        const points = objData.points;
+                const isOutlierObj = outlierObjKeys.has(key);
+                const stats = calculateStats(points, objData.officialArea, objData.officialVolume) || { status: 'ERRORE', perimeter: '-', area: '-', isClosed: false };
+                const color = isOutlierObj ? '#dc2626' : `hsl(${(objKeys.indexOf(key) * 137) % 360}, 100%, 55%)`;
+                const pastelFill = isOutlierObj ? '#fecaca' : `hsl(${(objKeys.indexOf(key) * 137) % 360}, 40%, 85%)`;
+
+                const statusClass = isOutlierObj ? 'status-open' : (stats.status === "CHIUSA" ? "status-closed" : (stats.status === "APERTA" ? "status-open" : (stats.status === "SEGMENTO" ? "status-segment" : "status-point")));
+
+                const item = document.createElement('div');
+                item.className = 'object-item';
+
+                let pointsHtml = '<div class="point-list">';
+                points.forEach(p => {
+                    const pKey = `${key}-${p.id}`;
+                    pointsHtml += `
+                        <div class="point-item" data-point-key="${pKey}">
+                            <div class="point-id">Punto ${p.id}</div>
+                            <div class="point-coords">
+                                <div class="coord-group">
+                                    <span class="coord-label">Gauss-Boaga (N, E)</span>
+                                    <span>${p.n.toFixed(2)}, ${p.e.toFixed(2)}</span>
+                                </div>
+                                <div class="coord-group">
+                                    <span class="coord-label">WGS84 (Lat, Lng)</span>
+                                    <span>${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                pointsHtml += '</div>';
+
+                let statsHtml = '';
+                const offAreaText = stats.officialArea !== null ? `${stats.officialArea.toFixed(2)} m²` : "N/D";
+                const offVolText = stats.officialVolume !== null ? `${stats.officialVolume.toFixed(2)} m³` : "N/D";
+
+                if (points.length === 2) {
+                    statsHtml = `<div class="obj-stats"><span>Lunghezza:</span><span style="text-align: right">${stats.perimeter}</span></div>`;
+                } else if (points.length > 2) {
+                    statsHtml = `
+                    <div class="obj-stats" style="grid-template-columns: 1fr; gap: 0.25rem;">
+                        <div style="display: flex; justify-content: space-between;"><span>Lunghezza:</span><span>${stats.perimeter}</span></div>
+                        <div style="display: flex; justify-content: space-between;"><span>Area (Calc):</span><span>${stats.area}</span></div>
+                        <div style="display: flex; justify-content: space-between; color: var(--accent); font-weight: bold;"><span>Area (Ufficiale):</span><span>${offAreaText}</span></div>
+                    </div>`;
+                }
+
+                const outlierBadge = isOutlierObj ? `
+                    <div style="background:rgba(220,38,38,0.15);border:1px solid #dc2626;border-radius:6px;padding:5px 8px;margin-top:6px;font-size:0.7rem;color:#fca5a5;">
+                        <i class="fas fa-triangle-exclamation" style="color:#ef4444;"></i>
+                        <strong>Non visualizzato sulla mappa</strong><br>
+                        Le coordinate di questo oggetto non sono Gauss-Boaga valide<br>
+                        (N=${points[0]?.n?.toFixed(3)}, E=${points[0]?.e?.toFixed(3)}).<br>
+                        Correggere nel file XML prima di procedere.
+                    </div>` : '';
+
+                item.innerHTML = `
+                <div class="obj-header">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        ${isOutlierObj
+                            ? `<span style="color:#ef4444;font-size:0.9rem;"><i class="fas fa-ban"></i></span>`
+                            : `<button class="visibility-toggle" title="Mostra/Nascondi sulla mappa"><i class="fas fa-eye"></i></button>`
+                        }
+                        <span class="obj-id" style="${isOutlierObj?'color:#f87171;':''}">
+                            ${isOutlierObj ? '<i class="fas fa-triangle-exclamation"></i> ' : ''}${key}
+                        </span>
+                    </div>
+                    <span class="status-badge ${statusClass}">${isOutlierObj ? 'COORD. ERRATE' : stats.status}</span>
+                </div>
+                <div style="font-size: 0.75rem; margin-top: 0.25rem; opacity: 0.8;">${points.length} punti</div>
+                ${outlierBadge}${!isOutlierObj ? statsHtml : ''}${pointsHtml}
+                `;
+                item.style.borderLeft = isOutlierObj ? '4px solid #dc2626' : `4px solid ${color}`;
+                if (isOutlierObj) item.style.background = 'rgba(220,38,38,0.05)';
+
+                // SKIP map rendering for outlier objects — their coords are invalid
+                if (isOutlierObj) {
+                    list.appendChild(item);
+                    return; // continue forEach
+                }
+
+                const latlngs = points.map(p => ({ lat: p.lat, lng: p.lng }));
+                let mainLayer;
+                let objGroup = [];
+
+                if (points.length === 1) {
+                    mainLayer = new google.maps.Circle({
+                        center: latlngs[0],
+                        radius: 1, // Will be updated by updateMarkerSizes
+                        strokeColor: '#FFFFFF',
+                        strokeOpacity: 0.8,
+                        strokeWeight: 1.5,
+                        fillColor: color,
+                        fillOpacity: OPACITY_NORMAL,
+                        map: map
+                    });
+                    mainLayer.baseRadius = 8; // Visual radius in pixels
+                    const pKey = `${key}-${points[0].id}`;
+                    pointMarkers.set(pKey, mainLayer);
+
+                    mainLayer.addListener('click', (e) => {
+                        infoWindow.setContent(getPointHtml(points[0], key, color));
+                        infoWindow.setPosition(e.latLng);
+                        infoWindow.open(map);
+                        onMarkerClick(pKey);
+                    });
+                    objGroup.push(mainLayer);
+                } else {
+                    if (stats.isClosed && points.length > 2) {
+                        mainLayer = new google.maps.Polygon({
+                            paths: latlngs,
+                            strokeColor: color,
+                            strokeOpacity: 0.8,
+                            strokeWeight: 2,
+                            fillColor: pastelFill,
+                            fillOpacity: OPACITY_NORMAL,
+                            map: map
+                        });
+                    } else {
+                        mainLayer = new google.maps.Polyline({
+                            path: latlngs,
+                            strokeColor: color,
+                            strokeOpacity: 0.8,
+                            strokeWeight: 4,
+                            map: map
+                        });
+                    }
+                    objGroup.push(mainLayer);
+
+                    points.forEach(p => {
+                        const pMarker = new google.maps.Circle({
+                            center: { lat: p.lat, lng: p.lng },
+                            radius: 1,
+                            strokeColor: '#FFFFFF',
+                            strokeOpacity: 0.8,
+                            strokeWeight: 1.5,
+                            fillColor: color,
+                            fillOpacity: OPACITY_NORMAL,
+                            map: map
+                        });
+                        pMarker.baseRadius = 4.5; // Visual radius in pixels
+                        const pKey = `${key}-${p.id}`;
+                        pointMarkers.set(pKey, pMarker);
+                        objGroup.push(pMarker);
+
+                        pMarker.addListener('click', (e) => {
+                            infoWindow.setContent(getPointHtml(p, key, color));
+                            infoWindow.setPosition(e.latLng);
+                            infoWindow.open(map);
+                            onMarkerClick(pKey);
+                        });
+                    });
+                }
+                objectLayers.set(key, objGroup);
+                currentLayers.push(...objGroup);
+
+                const toggleBtn = item.querySelector('.visibility-toggle');
+                toggleBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    const isHidden = toggleBtn.classList.toggle('hidden');
+                    const layers = objectLayers.get(key);
+                    if (isHidden) {
+                        layers.forEach(l => l.setMap(null));
+                        toggleBtn.querySelector('i').className = 'fas fa-eye-slash';
+                        item.style.opacity = '0.6';
+
+                        // Sync UI: If this was the active object, close info window and hide stats card
+                        if (currentActiveKey === key) {
+                            infoWindow.close();
+                            document.getElementById('statsCard').style.display = 'none';
+                            item.classList.remove('active');
+                            currentActiveKey = null;
+                        }
+                    } else {
+                        layers.forEach(l => l.setMap(map));
+                        toggleBtn.querySelector('i').className = 'fas fa-eye';
+                        item.style.opacity = '1';
+                    }
+                };
+
+                mainLayer.addListener('click', (e) => {
+                    infoWindow.setContent(`
+                        <div style="font-family: Segoe UI, sans-serif; min-width: 150px;">
+                            <div style="font-weight: bold; color: ${color}; border-bottom: 2px solid ${color}; margin-bottom: 5px;">Oggetto ${key}</div>
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
+                                <tr><td>Perimetro:</td><td style="text-align: right">${stats.perimeter}</td></tr>
+                                <tr><td>Area (Calc):</td><td style="text-align: right">${stats.area}</td></tr>
+                                <tr style="color: var(--accent); font-weight: bold;"><td>Area (Uff):</td><td style="text-align: right">${offAreaText}</td></tr>
+                                <tr><td>Volumetria:</td><td style="text-align: right">${offVolText}</td></tr>
+                            </table>
+                        </div>
+                    `);
+                    infoWindow.setPosition(e.latLng);
+                    infoWindow.open(map);
+                    currentActiveKey = key;
+                    onMarkerClick();
+                });
+
+                item.querySelectorAll('.point-item').forEach(pEl => {
+                    pEl.onclick = (e) => {
+                        e.stopPropagation();
+                        const pKey = pEl.getAttribute('data-point-key');
+                        const marker = pointMarkers.get(pKey);
+                        
+                        // Check if object is hidden and show it if necessary
+                        if (toggleBtn.classList.contains('hidden')) {
+                            toggleBtn.click();
+                        }
+
+                        if (marker) {
+                            // Extract point data from the pointId in pKey
+                            const pointId = pKey.split('-').pop();
+                            const pData = points.find(pt => pt.id === pointId);
+
+                            if (pData) {
+                                infoWindow.setContent(getPointHtml(pData, key, color));
+                                infoWindow.setPosition(marker.center || marker.getCenter?.());
+                                infoWindow.open(map);
+                            }
+
+                            map.setCenter(marker.center || marker.getCenter?.() || { lat: 0, lng: 0 });
+                            map.setZoom(20);
+                            onMarkerClick(pKey);
+                        }
+                    };
+                });
+
+                const onMarkerClick = (pKey = null) => {
+                    currentActiveKey = key;
+                    
+                    // Mostra label sull'oggetto
+                    const center = latlngs.reduce((acc, curr) => ({ lat: acc.lat + curr.lat, lng: acc.lng + curr.lng }), { lat: 0, lng: 0 });
+                    center.lat /= latlngs.length;
+                    center.lng /= latlngs.length;
+                    showObjectLabel(key, center, color);
+                    
+                    // Update opacities for all objects
+                    objectLayers.forEach((layers, objKey) => {
+                        const isCurrent = (objKey === key);
+                        layers.forEach(layer => {
+                            if (layer.setOptions && (layer instanceof google.maps.Polygon || layer instanceof google.maps.Circle)) {
+                                layer.setOptions({ fillOpacity: isCurrent ? OPACITY_SELECTED : OPACITY_NORMAL });
+                            }
+                        });
+                    });
+
+                    document.getElementById('statsCard').style.display = 'block';
+                    document.getElementById('geo-perimeter').textContent = stats.perimeter;
+                    document.getElementById('geo-area').innerHTML = `Calc: ${stats.area}<br><span style="color: var(--accent); font-weight: bold;">Uff: ${offAreaText}</span>`;
+                    document.getElementById('geo-status').textContent = stats.status;
+                    document.getElementById('geo-status').style.color = stats.isClosed ? 'var(--accent)' : 'var(--danger)';
+
+                    document.querySelectorAll('.object-item').forEach(el => el.classList.remove('active'));
+                    item.classList.add('active');
+                    item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    if (pKey) {
+                        const pEl = item.querySelector(`[data-point-key="${pKey}"]`);
+                        if (pEl) {
+                            pEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            pEl.style.background = 'rgba(255,255,255,0.4)';
+                            setTimeout(() => pEl.style.background = '', 2000);
+                        }
+                    }
+                };
+
+                item.onclick = (e) => {
+                    if (item.classList.contains('active') && !e.target.closest('.point-item')) {
+                        item.classList.remove('active');
+                        if (activeLabelMarker) activeLabelMarker.setMap(null);
+                        return;
+                    }
+                    
+                    // Se nascosto, lo mostriamo
+                    if (toggleBtn.classList.contains('hidden')) {
+                        toggleBtn.click();
+                    }
+
+                    onMarkerClick();
+
+                    const b = new google.maps.LatLngBounds();
+                    latlngs.forEach(ll => b.extend(ll));
+                    map.fitBounds(b);
+                };
+
+                latlngs.forEach(ll => { if (bounds) bounds.extend(ll); });
+                list.appendChild(item);
+            } catch (objErr) {
+                log(`Errore nel rendering dell'oggetto ${key}: ` + objErr.message, 'warn');
+            }
+        });
+        
+        log("Rendering completato.");
+
+        if (currentLayers.length > 0 && map && bounds) {
+            map.fitBounds(bounds);
+            if (boundaryManager) boundaryManager.setPointsBounds(bounds);
+            updateMarkerSizes();
+            document.getElementById('exportCsvBtn').style.display = 'block';
+            
+            const dxfBtn = document.getElementById('exportDxfBtn');
+            dxfBtn.style.display = 'block';
+            if (parsedData.anomalyMsg === 'detected') {
+                dxfBtn.disabled = true;
+                dxfBtn.style.opacity = '0.5';
+                dxfBtn.style.cursor = 'not-allowed';
+                dxfBtn.title = 'Disabilitato: Coordinate anomale rilevate nel file. Impossibile esportare DXF.';
+            } else {
+                dxfBtn.disabled = false;
+                dxfBtn.style.opacity = '1';
+                dxfBtn.style.cursor = 'pointer';
+                dxfBtn.title = '';
+            }
+            
+            document.getElementById('toggleAllBtn').style.display = 'block';
+        }
+    } catch (err) {
+        log("Errore critico durante il rendering: " + err.message, 'error');
+        console.error(err);
+    }
+}
+
+// --- Master Toggle ---
+document.getElementById('toggleAllBtn').onclick = () => {
+    const btn = document.getElementById('toggleAllBtn');
+    const icon = btn.querySelector('i');
+    const isHiding = icon.classList.contains('fa-eye');
+
+    document.querySelectorAll('.visibility-toggle').forEach(toggle => {
+        const hidden = toggle.classList.contains('hidden');
+        if ((isHiding && !hidden) || (!isHiding && hidden)) {
+            toggle.click();
+        }
+    });
+
+    if (isHiding) {
+        icon.className = 'fas fa-eye-slash';
+        btn.style.background = 'var(--danger)';
+        btn.style.color = 'white';
+    } else {
+        icon.className = 'fas fa-eye';
+        btn.style.background = 'var(--border)';
+        btn.style.color = 'inherit';
+    }
+};
+
+        // --- CSV Export ---
+        document.getElementById('exportCsvBtn').onclick = () => {
+            if (!parsedData) return;
+            let csvContent = "Oggetto;Punto;N;E;Latitudine;Longitudine\n";
+            parsedData.objects.forEach((objData, key) => {
+                const points = objData.points;
+                points.forEach(p => {
+                    csvContent += `${key};${p.id};${p.n.toFixed(2)};${p.e.toFixed(2)};${p.lat.toFixed(6)};${p.lng.toFixed(6)}\n`;
+                });
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=ISO-8859-1;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `export_rilievo_${new Date().getTime()}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            log("File CSV generato.", 'success');
+        };
+
+        // --- DXF Export ---
+        document.getElementById('exportDxfBtn').onclick = () => {
+            if (!parsedData || parsedData.anomalyMsg === 'detected') return;
+            
+            const btn = document.getElementById('exportDxfBtn');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generazione DXF...';
+            btn.disabled = true;
+
+            setTimeout(() => {
+                // Aggiungiamo l'header AC1015 per supportare le LWPOLYLINE
+                let dxfContent = "0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1015\n0\nENDSEC\n";
+                dxfContent += "0\nSECTION\n2\nENTITIES\n";
+                
+                parsedData.objects.forEach((objData, key) => {
+                    const pts = objData.points;
+                    if (pts.length < 2) return; // Skip single points
+                    
+                    // Determina il colore base (3=Verde per ZD, 4=Ciano per SP, 7=Bianco/Nero default)
+                    let color = 7;
+                    if (key.toUpperCase().startsWith('ZD')) color = 3;
+                    else if (key.toUpperCase().startsWith('SP')) color = 4;
+                    
+                    // 1. Creiamo la LWPOLYLINE (Il Poligono)
+                    dxfContent += `0\nLWPOLYLINE\n100\nAcDbEntity\n8\n${key}\n62\n${color}\n100\nAcDbPolyline\n90\n${pts.length}\n70\n1\n`;
+                    pts.forEach(p => {
+                        dxfContent += `10\n${p.e.toFixed(3)}\n20\n${p.n.toFixed(3)}\n`;
+                    });
+                    
+                    // Calcolo area e centroide per l'etichetta centrale
+                    let area = 0, cx = 0, cy = 0;
+                    for (let i = 0; i < pts.length; i++) {
+                        const p1 = pts[i];
+                        const p2 = pts[(i + 1) % pts.length];
+                        const cross = (p1.e * p2.n) - (p2.e * p1.n);
+                        area += cross;
+                        cx += (p1.e + p2.e) * cross;
+                        cy += (p1.n + p2.n) * cross;
+                    }
+                    area = area / 2;
+                    const absArea = Math.abs(area);
+                    if (absArea > 0) {
+                        cx = cx / (6 * area);
+                        cy = cy / (6 * area);
+                        
+                        // 2. Testo Centrale (Nome Oggetto + Area)
+                        const label = `${key} (${absArea.toFixed(1)} mq)`;
+                        dxfContent += `0\nTEXT\n100\nAcDbEntity\n8\n${key}_LABEL\n62\n${color}\n100\nAcDbText\n10\n${cx.toFixed(3)}\n20\n${cy.toFixed(3)}\n30\n0.0\n40\n1.5\n1\n${label}\n`;
+                    }
+                    
+                    // 3. Punti (Nodi) e Testo dei Singoli Vertici
+                    pts.forEach(p => {
+                        const safeId = p.id ? String(p.id).trim() : "?";
+                        // Entità POINT (Colore 1 = Rosso)
+                        dxfContent += `0\nPOINT\n100\nAcDbEntity\n8\n${key}_NODES\n62\n1\n100\nAcDbPoint\n10\n${p.e.toFixed(3)}\n20\n${p.n.toFixed(3)}\n30\n0.0\n`;
+                        // Entità TEXT per il nome del punto (Colore 7 = Bianco/Nero, Shiftata +0.5m)
+                        dxfContent += `0\nTEXT\n100\nAcDbEntity\n8\n${key}_NODES\n62\n7\n100\nAcDbText\n10\n${(p.e + 0.5).toFixed(3)}\n20\n${(p.n + 0.5).toFixed(3)}\n30\n0.0\n40\n1.0\n1\n${safeId}\n`;
+                    });
+                });
+                
+                dxfContent += "0\nENDSEC\n0\nEOF\n";
+                
+                const blob = new Blob([dxfContent], { type: 'text/plain;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `rilievo_georeferenziato_${new Date().getTime()}.dxf`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                log("File DXF generato con successo.", 'success');
+                
+                btn.innerHTML = '<i class="fas fa-check"></i> DXF Generato!';
+                setTimeout(() => {
+                    btn.innerHTML = originalContent;
+                    btn.disabled = false;
+                }, 2000);
+            }, 300);
+        };
+
+        // --- Events ---
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.onclick = () => fileInput.click();
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); };
+        dropZone.ondragleave = () => dropZone.classList.remove('drag-over');
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            handleFiles(e.dataTransfer.files);
+        };
+        fileInput.onchange = (e) => handleFiles(e.target.files);
+
+        function handleFiles(files) {
+            if (files.length === 0) return;
+            const file = files[0];
+            window.currentFile = file; // Save for verification
+            
+            const overlay = document.getElementById('loaderOverlay');
+            if (overlay) {
+                const loaderTitle = document.getElementById('loaderTitle');
+                if (loaderTitle) loaderTitle.textContent = "Elaborazione File XML in corso...";
+                overlay.style.display = 'flex';
+            }
+
+            // Timeout per permettere al browser di mostrare l'animazione prima del blocco CPU
+            setTimeout(() => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        window.lastXmlContent = e.target.result;
+                        const data = parseD1(window.lastXmlContent);
+                        if (data) {
+                            parsedData = data;
+                            document.getElementById('verifyXmlBtn').style.display = 'block';
+
+                            console.log("File caricato, stato anomalie:", data.anomalyMsg);
+                             if (data.anomalyMsg === 'detected' && data.outlierInfo) {
+                                 console.log("Mostro modal anomalie...");
+                                 alert("⚠ ATTENZIONE: Sono state rilevate anomalie nelle coordinate. Alcuni oggetti non saranno visibili sulla mappa. Genera il PDF per i dettagli completi.");
+                                 const oi = data.outlierInfo;
+
+                                // Costruisci URL per la mappa diagnostica
+                                const diagParams = new URLSearchParams();
+                                diagParams.set('filename', file.name);
+                                const ptData = oi.allOutlierPts.slice(0, 20).map(p => `${p.pref||''}${p.objId||''},${p.id},${p.n},${p.e}`);
+                                diagParams.set('pts', ptData.join(';'));
+                                diagParams.set('nMed', oi.nMed.toFixed(3));
+                                diagParams.set('eMed', oi.eMed.toFixed(3));
+                                const diagUrl = `/debug_outlier_map.html?${diagParams.toString()}`;
+
+                                // Costruisci lista nomi oggetti anomali
+                                const badObjList = oi.objNames.join(', ');
+                                const badObjCount = oi.objNames.length;
+
+                                // Mostra il banner di avviso senza bloccare la mappa
+                                // Rimuoviamo eventuali banner precedenti
+                                const existingBanner = document.getElementById('outlierBanner');
+                                if (existingBanner) existingBanner.remove();
+
+                                const banner = document.createElement('div');
+                                banner.id = 'outlierBanner';
+                                banner.style.cssText = `
+                                    position:absolute; top:10px; left:50%; transform:translateX(-50%);
+                                    z-index:1000; width:min(700px,90%); pointer-events:auto;
+                                    background:linear-gradient(135deg,#1c0a0a,#1e1a2e);
+                                    border:1.5px solid #dc2626; border-radius:14px;
+                                    box-shadow:0 8px 32px rgba(220,38,38,0.35);
+                                    font-family:'Segoe UI',sans-serif;
+                                    overflow:hidden;
+                                `;
+                                banner.innerHTML = `
+                                    <div style="padding:14px 18px 12px;">
+                                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+                                            <div style="background:#dc2626;border-radius:50%;width:36px;height:36px;flex-shrink:0;
+                                                display:flex;align-items:center;justify-content:center;
+                                                box-shadow:0 0 0 4px rgba(220,38,38,0.25);">
+                                                <i class="fas fa-triangle-exclamation" style="color:white;font-size:0.9rem;"></i>
+                                            </div>
+                                            <div style="flex:1;">
+                                                <div style="color:#f87171;font-size:0.65rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;">
+                                                    Anomalia Coordinate — ${badObjCount} oggett${badObjCount>1?'i':'o'} nascost${badObjCount>1?'i':'o'}
+                                                </div>
+                                                <div style="color:#f1f5f9;font-size:0.88rem;font-weight:600;margin-top:1px;">
+                                                    <strong style="color:#fca5a5;">${badObjList}</strong> non visualizzat${badObjCount>1?'i':'o'} per errori Gauss-Boaga.
+                                                </div>
+                                            </div>
+                                            <button onclick="document.getElementById('outlierBanner').remove()"
+                                                style="background:none;border:none;color:#94a3b8;font-size:1.1rem;cursor:pointer;
+                                                padding:4px;border-radius:4px;flex-shrink:0;">
+                                                <i class="fas fa-xmark"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                `;
+ 
+                                 // Mostra il nuovo Modal Anomaly
+                                 const modal = document.getElementById('anomalyModal');
+                                 const listEl = document.getElementById('anomalyObjectList');
+                                 
+                                 listEl.innerHTML = oi.objNames.map(name => {
+                                     const pts = oi.objects[name];
+                                     const ptTableRows = pts.map(p => `
+                                        <tr>
+                                            <td>#${p.ptId}</td>
+                                            <td class="coord-val">${p.n.toFixed(3)}</td>
+                                            <td class="coord-val">${p.e.toFixed(3)}</td>
+                                        </tr>
+                                     `).join('');
+                                     
+                                     return `
+                                        <div class="affected-card">
+                                            <div class="card-obj-header">
+                                                <div class="card-obj-name"><i class="fas fa-cube"></i> ${name}</div>
+                                                <div class="card-obj-pts">${pts.length} punti errati</div>
+                                            </div>
+                                            <table class="card-pt-table">
+                                                <thead>
+                                                    <tr><th>Punto</th><th>Nord (inserito)</th><th>Est (inserito)</th></tr>
+                                                </thead>
+                                                <tbody>${ptTableRows}</tbody>
+                                            </table>
+                                        </div>
+                                     `;
+                                 }).join('');
+                                 
+                                 document.getElementById('openDiagMapBtn').onclick = () => { document.getElementById('diagMapIframe').src = diagUrl; document.getElementById('diagMapOverlay').style.display = 'block'; };
+                                 modal.style.display = 'flex';
+                                 
+                                 // Mostra avviso in sidebar
+                                 const sidebarSection = document.getElementById('anomalySidebarSection');
+                                 if (sidebarSection) sidebarSection.style.display = 'block';
+                                 
+                                 const sidebarList = document.getElementById('sidebarAnomalyList');
+                                 if (sidebarList) {
+                                     sidebarList.innerHTML = oi.objNames.map(name => {
+                                         const pts = oi.objects[name];
+                                         return `
+                                            <div class="affected-card" style="margin-bottom: 8px;">
+                                                <div class="card-obj-header" style="font-size: 0.75rem;">
+                                                    <div class="card-obj-name"><i class="fas fa-cube"></i> ${name}</div>
+                                                    <div class="card-obj-pts">${pts.length} punti</div>
+                                                </div>
+                                            </div>
+                                         `;
+                                     }).join('');
+                                 }
+
+                                 const sidebarBtn = document.getElementById('sidebarOpenDiagBtn');
+                                 if (sidebarBtn) sidebarBtn.onclick = () => { document.getElementById('diagMapIframe').src = diagUrl; document.getElementById('diagMapOverlay').style.display = 'block'; };
+
+                                 // Aggiunge anche il banner sopra la mappa
+                                 const mapEl = document.getElementById('map');
+                                 mapEl.style.position = 'relative';
+                                 mapEl.appendChild(banner);
+
+                                // Ora renderizza normalmente la mappa con gli oggetti validi
+                                document.getElementById('mapLayersPanel').style.display = 'block';
+                                renderResults(data);
+                                // Fetch intersections per gli oggetti validi
+                                try {
+                                    const formData2 = new FormData();
+                                    formData2.append('file', window.currentFile);
+                                    const res2 = await fetch('/api/analyze', { method: 'POST', body: formData2 });
+                                    const json2 = await res2.json();
+                                    drawIntersections(json2.fuoriuscite);
+                                } catch(err) {}
+                                // Pannello info visibile
+                                document.getElementById('infoPanel').style.display = 'block';
+                            } else {
+                                // Render normale
+                                document.getElementById('mapLayersPanel').style.display = 'block';
+                                renderResults(data);
+                                // Fetch intersections
+                                try {
+                                    const formData = new FormData();
+                                    formData.append('file', window.currentFile);
+                                    const res = await fetch('/api/analyze', { method: 'POST', body: formData });
+                                    const json = await res.json();
+                                    drawIntersections(json.fuoriuscite);
+                                } catch (err) {
+                                    console.error("Error fetching intersections:", err);
+                                }
+                                document.getElementById('infoPanel').style.display = 'block';
+                            }
+                        }
+                    } catch (err) { 
+                        log("Errore@handleFiles: " + (err && err.message ? err.message : String(err)), 'error');
+                        console.error('handleFiles error:', err); 
+                    } finally {
+                        if (overlay) overlay.style.display = 'none';
+                    }
+                };
+                reader.readAsText(file, "ISO-8859-1");
+            }, 100);
+        }
+
+        // --- Intersections and Outbound Areas Rendering ---
+        function drawIntersections(fuoriuscite) {
+            if (!fuoriuscite || !map) return;
+            console.log("Drawing intersections and outside areas:", fuoriuscite);
+            fuoriuscite.forEach(f => {
+                // Plot intersecting points
+                if (f.intersezioni_json && f.intersezioni_json.length > 0) {
+                    f.intersezioni_json.forEach(pt => {
+                        const coords = convertToWgs84(pt.n, pt.e, 'peninsula');
+                        if (coords) {
+                            const marker = new google.maps.Marker({
+                                position: { lat: coords.lat, lng: coords.lng },
+                                map: map,
+                                icon: {
+                                    url: 'data:image/svg+xml;charset=UTF-8,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"%3E%3Cpath fill="%23dc2626" d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM175 175c9.4-9.4 24.6-9.4 33.9 0l47 47 47-47c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9l-47 47 47 47c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0l-47-47-47 47c-9.4 9.4-24.6 9.4-33.9 0s-9.4-24.6 0-33.9l47-47-47-47c-9.4-9.4-9.4-24.6 0-33.9z"/%3E%3C/svg%3E',
+                                    scaledSize: new google.maps.Size(24, 24),
+                                    anchor: new google.maps.Point(12, 12)
+                                },
+                                title: `Intersezione Oggetto ${f.oggetto}`,
+                                zIndex: 1000
+                            });
+                            
+                            marker.addListener('click', () => {
+                                infoWindow.setContent(`
+                                    <div style="font-family: 'Inter', sans-serif; padding: 5px;">
+                                        <div style="color: #dc2626; font-weight: bold; margin-bottom: 5px; border-bottom: 2px solid #dc2626;">
+                                            <i class="fas fa-exclamation-triangle"></i> Punto di Intersezione
+                                        </div>
+                                        <div style="font-size: 0.8rem; margin-top: 5px;">
+                                            <b>Oggetto:</b> ${f.oggetto}<br><br>
+                                            <span style="color: #666; font-size: 0.75rem;">Coordinate N, E (Gauss-Boaga)</span><br>
+                                            <b style="font-family: monospace;">N:</b> ${pt.n}<br>
+                                            <b style="font-family: monospace;">E:</b> ${pt.e}
+                                        </div>
+                                    </div>
+                                `);
+                                infoWindow.setPosition(marker.getPosition());
+                                infoWindow.open(map);
+                            });
+                            
+                            currentLayers.push(marker);
+                        }
+                    });
+                }
+
+                // Plot protruding polygons
+                if (f.fuori_polygons && f.fuori_polygons.length > 0) {
+                    f.fuori_polygons.forEach(polygonCoords => {
+                        const paths = polygonCoords.map(pt => {
+                            const wgsPt = convertToWgs84(pt.n, pt.e, 'peninsula');
+                            return wgsPt ? { lat: wgsPt.lat, lng: wgsPt.lng } : null;
+                        }).filter(pt => pt !== null);
+
+                        if (paths.length >= 3) {
+                            const darkRedPolygon = new google.maps.Polygon({
+                                paths: paths,
+                                strokeColor: '#8B0000',
+                                strokeOpacity: 0.9,
+                                strokeWeight: 2,
+                                fillColor: '#8B0000',
+                                fillOpacity: 0.8,
+                                map: map,
+                                zIndex: 500
+                            });
+
+                            darkRedPolygon.addListener('click', (e) => {
+                                infoWindow.setContent(`
+                                    <div style="font-family: 'Inter', sans-serif; padding: 5px;">
+                                        <div style="color: #8B0000; font-weight: bold; margin-bottom: 5px; border-bottom: 2px solid #8B0000;">
+                                            <i class="fas fa-chart-area"></i> Area Fuoriuscita
+                                        </div>
+                                        <div style="font-size: 0.8rem; margin-top: 5px;">
+                                            <b>Oggetto:</b> ${f.oggetto}<br>
+                                            <b>Area (circa):</b> ${f.area_out.toFixed(2)} m²
+                                        </div>
+                                    </div>
+                                `);
+                                infoWindow.setPosition(e.latLng);
+                                infoWindow.open(map);
+                            });
+
+                            currentLayers.push(darkRedPolygon);
+                        }
+                    });
+                }
+            });
+        }
+
+        // --- Search Filter ---
+        const searchInput = document.getElementById('sidebarSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                const objects = document.querySelectorAll('.object-item');
+                
+                objects.forEach(obj => {
+                    const objId = obj.querySelector('.obj-id').textContent.toLowerCase();
+                    const points = Array.from(obj.querySelectorAll('.point-id')).map(p => p.textContent.toLowerCase());
+                    
+                    const matchObj = objId.includes(query);
+                    const matchPoint = points.some(p => p.includes(query));
+                    
+                    if (matchObj || matchPoint) {
+                        obj.style.display = 'block';
+                    } else {
+                        obj.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        // --- PDF Verification Button ---
+        document.getElementById('verifyXmlBtn').onclick = () => {
+            if (!window.currentFile) {
+                log("Nessun file selezionato per la verifica.", 'error');
+                return;
+            }
+            document.getElementById('exportModal').style.display = 'flex';
+        };
+
+        window.confirmPdfExport = async (showLabels) => {
+            document.getElementById('exportModal').style.display = 'none';
+            
+            const btn = document.getElementById('verifyXmlBtn');
+            const overlay = document.getElementById('loaderOverlay');
+            const loaderTitle = document.getElementById('loaderTitle');
+            
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generazione Report...';
+            btn.disabled = true;
+            
+            if (overlay) {
+                if (loaderTitle) loaderTitle.textContent = "Generazione Report PDF in corso...";
+                overlay.style.display = 'flex';
+            }
+
+            try {
+                log("Inviando richiesta di verifica al server (Labels: " + showLabels + ")...", 'info');
+                const formData = new FormData();
+                formData.append('file', window.currentFile);
+                formData.append('show_labels', showLabels);
+
+                const response = await fetch('/verify', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    log("Risposta ricevuta, elaborazione PDF...", 'info');
+                    const blob = await response.blob();
+                    
+                    if (blob.size === 0) {
+                        throw new Error("Il server ha restituito un file vuoto.");
+                    }
+
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = window.currentFile.name.replace('.xml', ' - Report Esito.pdf');
+                    
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    // Delay revocation to ensure browser starts download
+                    setTimeout(() => {
+                        if (document.body.contains(a)) document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                    }, 2000);
+
+                    log(`Report PDF generato con successo. <a href="${url}" download="${a.download}" style="color: var(--primary); text-decoration: underline;">Clicca qui se il download non è iniziato.</a>`, 'success');
+                } else {
+                    const errorMsg = await response.text();
+                    log("Errore server: " + errorMsg, 'error');
+                    alert("Errore nella generazione del report: " + errorMsg);
+                }
+            } catch (err) {
+                log("Errore tecnico: " + err.message, 'error');
+                console.error("PDF Export Error:", err);
+                alert("Errore durante il download: " + err.message);
+            } finally {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+                // Hide fullscreen loading overlay
+                if (overlay) overlay.style.display = 'none';
+            }
+        };
+
+        // --- Sidebar & Tab Interactivity ---
+        document.getElementById('sidebarToggle').onclick = () => {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
+            const icon = document.querySelector('#sidebarToggle i');
+            if (sidebar.classList.contains('collapsed')) {
+                icon.className = 'fas fa-chevron-right';
+            } else {
+                icon.className = 'fas fa-chevron-left';
+            }
+        };
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.onclick = () => {
+                const tab = btn.getAttribute('data-tab');
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                const content = document.getElementById(`tab-${tab}`);
+                if (content) content.classList.add('active');
+            };
+        });
+
+        // Fetch user data
+        fetch('/api/user')
+            .then(res => {
+                if(!res.ok) {
+                    window.location.href = '/login';
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data.nome) {
+                    document.getElementById('userNameDisplay').textContent = `${data.nome} ${data.cognome}`;
+                    document.getElementById('userEmailDisplay').textContent = data.email;
+                    document.getElementById('userInitials').textContent = (data.nome[0] + data.cognome[0]).toUpperCase();
+                }
+            })
+            .catch(err => console.error("Error fetching user data:", err));
+
+        // initMap(); // Called by Google Maps callback
+        loadGoogleMaps();
+
+        // Diag Map Overlay handler
+        window.closeDiagMap = function() {
+            document.getElementById('diagMapOverlay').style.display = 'none';
+            document.getElementById('diagMapIframe').src = '';
+        };
+
+        // --- Auto-Logout Inattività (3 minuti) ---
+        (function() {
+            let time;
+            const logoutTimeMs = 3 * 60 * 1000; // 3 minuti
+
+            function resetTimer() {
+                clearTimeout(time);
+                time = setTimeout(() => {
+                    alert("Sessione scaduta per inattività (3 minuti). Verrai disconnesso.");
+                    window.location.href = '/logout';
+                }, logoutTimeMs);
+            }
+
+            // Ascolta vari eventi per resettare il timer
+            window.onload = resetTimer;
+            document.onmousemove = resetTimer;
+            document.onkeydown = resetTimer;
+            document.onclick = resetTimer;
+            document.onscroll = resetTimer;
+        })();
+    </script>
+
+    <!-- Diag Map Overlay -->
+    <div id="diagMapOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:999999; background:var(--bg-app);">
+        <iframe id="diagMapIframe" style="width:100%; height:100%; border:none;"></iframe>
+    </div>
+</body>
+</html>

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mappa Diagnostica Outlier — GEO-D1</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.11.0/proj4.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="index.css?v=3">
+  <style>
+    /* Specific overrides for debug map */
+    .dist-label {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1.5px solid #fbbf24;
+      border-radius: 4px;
+      color: #fbbf24;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      white-space: nowrap;
+    }
+    
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 20px; right: 20px;
+      background: var(--bg-card); border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md); padding: 14px 18px;
+      font-size: 13px; max-width: 320px;
+      box-shadow: var(--shadow-premium);
+      z-index: 9999; opacity: 0; pointer-events: none;
+      transition: opacity .3s, transform .3s;
+      transform: translateY(20px);
+      backdrop-filter: blur(10px);
+    }
+    .toast.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+    .toast .toast-title { font-weight: 700; color: var(--primary); margin-bottom: 4px; font-size: 14px; }
+    .toast .toast-body  { color: var(--text-secondary); line-height: 1.5; }
+
+    /* Map */
+    #map { flex: 1; height: 100%; border-radius: var(--radius-lg) 0 0 var(--radius-lg); overflow: hidden; box-shadow: -5px 0 25px rgba(0,0,0,0.05); }
+
+    /* Stat Rows */
+    .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--glass-border); }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+    .stat-val   { font-size: 12px; font-weight: 700; font-family: monospace; }
+    .stat-val.err { color: var(--accent-rose); }
+    .stat-val.ok  { color: var(--accent-emerald); }
+
+    /* Object rows */
+    .obj-row {
+      background: rgba(244, 63, 94, 0.05); border-left: 3px solid var(--accent-rose);
+      border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; cursor: pointer;
+      transition: all 0.2s; border: 1px solid rgba(244, 63, 94, 0.1); border-left-width: 3px;
+    }
+    .obj-row:hover { background: rgba(244, 63, 94, 0.1); transform: translateX(3px); box-shadow: 0 4px 12px rgba(244,63,94,0.1); }
+    .obj-row .obj-key { font-weight: 700; color: var(--accent-rose); font-size: 13px; display: flex; align-items: center; gap: 6px; }
+    .obj-row .obj-coords { font-family: monospace; font-size: 11px; color: #b45309; margin-top: 6px; }
+    .obj-row .obj-dist   { font-size: 11px; color: var(--text-secondary); margin-top: 6px; line-height: 1.4; }
+
+    /* Cluster row */
+    .cluster-row {
+      background: rgba(16, 185, 129, 0.05); border-left: 3px solid var(--accent-emerald);
+      border-radius: 8px; padding: 10px 14px; cursor: pointer; transition: all 0.2s;
+      border: 1px solid rgba(16, 185, 129, 0.1); border-left-width: 3px;
+    }
+    .cluster-row:hover { background: rgba(16, 185, 129, 0.1); transform: translateX(3px); box-shadow: 0 4px 12px rgba(16,185,129,0.1); }
+    .cluster-row .obj-key { font-weight: 700; color: var(--accent-emerald); font-size: 13px; display: flex; align-items: center; gap: 6px; }
+    .cluster-row .obj-coords { font-family: monospace; font-size: 11px; color: #047857; margin-top: 6px; }
+
+    /* Legend */
+    .legend-item { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+    .legend-dot  { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+
+    /* Button styles */
+    .btn-diag {
+      width: 100%; padding: 12px 16px; border-radius: 10px; border: none; cursor: pointer;
+      font-size: 13px; font-weight: 600; text-align: left;
+      display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+      transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-diag i { width: 18px; text-align: center; font-size: 15px; }
+    .btn-red    { background: rgba(244, 63, 94, 0.1); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.2); }
+    .btn-red:hover    { background: rgba(244, 63, 94, 0.15); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(244, 63, 94, 0.15); }
+    .btn-green  { background: rgba(16, 185, 129, 0.1); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.2); }
+    .btn-green:hover  { background: rgba(16, 185, 129, 0.15); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15); }
+    .btn-blue   { background: rgba(99, 102, 241, 0.1); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.2); }
+    .btn-blue:hover   { background: rgba(99, 102, 241, 0.15); transform: translateY(-1px); box-shadow: 0 4px 12px var(--primary-glow); }
+    .btn-back   { background: white; color: var(--text-secondary); border: 1px solid var(--glass-border); box-shadow: var(--shadow-premium); }
+    .btn-back:hover   { background: #f8fafc; color: var(--text-primary); transform: translateY(-1px); }
+    
+    .badge-file {
+      display: inline-block; background: rgba(99, 102, 241, 0.1); color: var(--primary);
+      padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      border: 1px solid rgba(99, 102, 241, 0.2); margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside class="sidebar" style="width: 420px; z-index: 1000; display: flex; flex-direction: column;">
+    <header class="sidebar-header" style="padding-bottom: 1rem; border-bottom: 1px solid var(--glass-border);">
+      <div class="logo-container">
+        <div style="background: var(--primary-glow); padding: 8px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+          <i class="fas fa-microscope logo-icon" style="font-size: 1.6rem; color: var(--primary);"></i>
+        </div>
+        <div class="logo-text">
+          <h1>Diagnostica</h1>
+          <span>Outlier Coordinate</span>
+        </div>
+      </div>
+      <div class="badge-file" id="filenameLabel">Caricamento...</div>
+    </header>
+
+    <div class="sidebar-content" style="flex: 1; overflow-y: auto; padding: 1.5rem;">
+      <!-- Stats card -->
+      <div class="card" id="statsCard">
+        <h3><i class="fas fa-chart-bar" style="color:var(--primary)"></i> Statistiche Bounding Box</h3>
+        <div class="stat-row"><span class="stat-label">ΔN</span><span class="stat-val err" id="st-dn">—</span></div>
+        <div class="stat-row"><span class="stat-label">ΔE</span><span class="stat-val err" id="st-de">—</span></div>
+        <div class="stat-row"><span class="stat-label">Scala su PDF</span><span class="stat-val err" id="st-scale">—</span></div>
+        <div class="stat-row" style="margin-top:4px;"><span class="stat-label">Scala attesa</span><span class="stat-val ok" id="st-scale-ok">—</span></div>
+      </div>
+
+      <!-- Outlier objects -->
+      <div class="card">
+        <h3><i class="fas fa-crosshairs" style="color:var(--accent-rose)"></i> Oggetti Anomali</h3>
+        <div id="outlierList"><!-- dynamic --></div>
+      </div>
+
+      <!-- Cluster info -->
+      <div class="card">
+        <h3><i class="fas fa-location-dot" style="color:var(--accent-emerald)"></i> Cluster Reale</h3>
+        <div class="cluster-row" id="clusterRow" onclick="goToCluster()">
+          <div class="obj-key"><i class="fas fa-bullseye"></i> Mediana del rilievo</div>
+          <div class="obj-coords" id="clusterCoords">N=— E=—</div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:6px;font-weight:500;"><i class="fas fa-search-plus"></i> Clicca per centrare</div>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="card">
+        <h3><i class="fas fa-compass" style="color:var(--text-secondary)"></i> Navigazione</h3>
+        <button class="btn-diag btn-red"   onclick="goToOutlier()"><i class="fas fa-crosshairs"></i> Zoom su Anomalia</button>
+        <button class="btn-diag btn-green" onclick="goToCluster()"><i class="fas fa-location-dot"></i> Zoom su Cluster</button>
+        <button class="btn-diag btn-blue"  onclick="fitAll()"><i class="fas fa-expand-arrows-alt"></i> Vista Globale</button>
+        <button class="btn-diag btn-back"  onclick="if(window.parent && window.parent.closeDiagMap) { window.parent.closeDiagMap(); } else { location.href='/'; }"><i class="fas fa-arrow-left"></i> Torna ad Analizzatore</button>
+      </div>
+
+      <!-- Legend -->
+      <div class="card" style="margin-bottom: 0;">
+        <h3><i class="fas fa-circle-info" style="color:var(--text-secondary)"></i> Legenda Mappa</h3>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--accent-rose);"></div>Vertice anomalo (pulsante)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f97316;border:2px dashed #fed7aa;"></div>Geometria anomala stimata</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--accent-emerald);"></div>Centroide rilievo reale</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#fbbf24;border-radius:2px;"></div>Dislocazione (distanza)</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══ MAPPA ═══ -->
+  <div id="map"></div>
+
+</div>
+
+<div class="toast" id="toast">
+  <div class="toast-title" id="toast-title"></div>
+  <div class="toast-body"  id="toast-body"></div>
+</div>
+
+<script>
+// ─── Conversione Gauss-Boaga Roma40 (EST/OVEST) → WGS84 ────────────────────
+function gbToWgs84(gbN, gbE) {
+  if (!gbN || !gbE || gbN < 100 || gbE < 100) return null; // valori quasi-zero non convertibili
+  const isEast = gbE > 2000000;
+  const projGB = isEast 
+      ? "+proj=tmerc +lat_0=0 +lon_0=15 +k=0.9996 +x_0=2520000 +y_0=0 +ellps=intl +towgs84=-104.1,-49.1,-9.9,0.971,-2.917,0.714,-11.68 +units=m +no_defs"
+      : "+proj=tmerc +lat_0=0 +lon_0=9 +k=0.9996 +x_0=1500000 +y_0=0 +ellps=intl +towgs84=-104.1,-49.1,-9.9,0.971,-2.917,0.714,-11.68 +units=m +no_defs";
+  
+  // proj4 converte [lon, lat] (o [E, N]) -> [lon, lat] (o [E, N])
+  const wgs = proj4(projGB, 'EPSG:4326', [gbE, gbN]);
+  return [wgs[1], wgs[0]]; // Restituisce [lat, lon] per Leaflet
+}
+
+// Se i valori GB sono minori di 1000 (come 40.43, 14.97) → quasi certamente gradi decimali
+function smartConvert(gbN, gbE) {
+  if (gbN < 1000 && gbE < 1000 && gbN > 30 && gbE > 5) {
+    // Coordinate geografiche → Convertiamo in GB per calcolo distanza
+    const isEast = (typeof eMed !== 'undefined' && eMed > 2000000) || gbE > 12;
+    const projGB = isEast 
+        ? "+proj=tmerc +lat_0=0 +lon_0=15 +k=0.9996 +x_0=2520000 +y_0=0 +ellps=intl +towgs84=-104.1,-49.1,-9.9,0.971,-2.917,0.714,-11.68 +units=m +no_defs"
+        : "+proj=tmerc +lat_0=0 +lon_0=9 +k=0.9996 +x_0=1500000 +y_0=0 +ellps=intl +towgs84=-104.1,-49.1,-9.9,0.971,-2.917,0.714,-11.68 +units=m +no_defs";
+    const gb = proj4('EPSG:4326', projGB, [gbE, gbN]);
+    return { ll: [gbN, gbE], isGeo: true, calcN: gb[1], calcE: gb[0] };
+  }
+  const res = gbToWgs84(gbN, gbE);
+  return res ? { ll: res, isGeo: false, calcN: gbN, calcE: gbE } : null;
+}
+
+// ─── Parse URL Params ──────────────────────────────────────────────────────
+const params  = new URLSearchParams(location.search);
+const filename = params.get('filename') || 'File sconosciuto';
+const nMed    = parseFloat(params.get('nMed') || '0');
+const eMed    = parseFloat(params.get('eMed') || '0');
+
+// pts format: "ZD002,1,40.430,14.979;ZD002,2,40.430,14.979;..."
+const ptsRaw  = params.get('pts') || '';
+const outlierPts = ptsRaw ? ptsRaw.split(';').map(s => {
+  const [objKey, ptId, n, e] = s.split(',');
+  return { objKey: objKey||'?', ptId: ptId||'?', n: parseFloat(n), e: parseFloat(e) };
+}).filter(p => !isNaN(p.n) && !isNaN(p.e)) : [];
+
+// Dati demo (usati se pagina aperta direttamente senza parametri)
+const DEMO_MODE = outlierPts.length === 0;
+if (DEMO_MODE) {
+  outlierPts.push({ objKey: 'ZD002', ptId: '1', n: 40.430, e: 14.979 });
+  outlierPts.push({ objKey: 'ZD004', ptId: '1', n: 40.431, e: 14.979 });
+}
+
+document.getElementById('filenameLabel').textContent = filename;
+
+// ─── Raggruppa per oggetto ─────────────────────────────────────────────────
+const objMap = {};
+outlierPts.forEach(p => {
+  if (!objMap[p.objKey]) objMap[p.objKey] = [];
+  objMap[p.objKey].push(p);
+});
+
+// ─── Conversione cluster mediano ───────────────────────────────────────────
+let clusterLL = null;
+if (nMed > 100 && eMed > 100) {
+  clusterLL = gbToWgs84(nMed, eMed);
+} else if (DEMO_MODE) {
+  clusterLL = gbToWgs84(4475575, 2518237); // demo default
+}
+
+// ─── Calcolo scala PDF ────────────────────────────────────────────────────
+// Raccogliamo tutti i punti (outlier + cluster) per stimare il bounding box
+const allN = outlierPts.map(p => p.n);
+const allE = outlierPts.map(p => p.e);
+if (nMed > 0) { allN.push(nMed); allE.push(eMed); }
+const deltaN = (Math.max(...allN) - Math.min(...allN));
+const deltaE = (Math.max(...allE) - Math.min(...allE));
+// Scala errata: bbox comprende outlier + cluster
+const scaleWrong = Math.max(deltaN, deltaE) * 1.07 / 0.170;
+// Scala corretta: solo il cluster (stima ~900 m tipico)
+const scaleOk = 900 * 1.07 / 0.170;
+
+document.getElementById('st-dn').textContent   = deltaN > 1000 ? `${(deltaN/1000).toFixed(1)} km` : `${deltaN.toFixed(1)} m`;
+document.getElementById('st-de').textContent   = deltaE > 1000 ? `${(deltaE/1000).toFixed(1)} km` : `${deltaE.toFixed(1)} m`;
+document.getElementById('st-scale').textContent = `1 : ${Math.round(scaleWrong).toLocaleString('it-IT')}`;
+document.getElementById('st-scale-ok').textContent = `~1 : ${Math.round(scaleOk).toLocaleString('it-IT')}`;
+
+if (clusterLL) {
+  document.getElementById('clusterCoords').textContent =
+    `N = ${nMed.toFixed(3)}   E = ${eMed.toFixed(3)}`;
+}
+
+// ─── Inizializza mappa ────────────────────────────────────────────────────
+const map = L.map('map', { zoomControl: true });
+
+const tileLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap &copy; CartoDB', subdomains:'abcd', maxZoom:20
+}).addTo(map);
+
+// ─── Disegna cluster ──────────────────────────────────────────────────────
+let clusterMarker = null;
+if (clusterLL) {
+  clusterMarker = L.circleMarker(clusterLL, {
+    radius: 14, color: '#22c55e', fillColor: '#22c55e',
+    weight: 3, fillOpacity: 0.85
+  }).addTo(map).bindPopup(`
+    <b style="color:#16a34a">✅ Cluster Corretto</b><br>
+    <b>Gauss-Boaga:</b><br>
+    N = ${nMed.toFixed(3)}<br>
+    E = ${eMed.toFixed(3)}<br>
+    <b>WGS84:</b><br>
+    Lat = ${clusterLL[0].toFixed(5)}°&nbsp; Lon = ${clusterLL[1].toFixed(5)}°
+  `);
+}
+
+// ─── Disegna outlier ──────────────────────────────────────────────────────
+const outlierMarkers = [];
+const outlierLLs = [];
+
+Object.entries(objMap).forEach(([objKey, pts], oi) => {
+  const firstPt  = pts[0];
+  const conv     = smartConvert(firstPt.n, firstPt.e);
+  if (!conv) return;
+
+  const ll       = conv.ll;
+  outlierLLs.push(ll);
+
+  // Marker pulsante
+  const pulse = L.circleMarker(ll, {
+    radius: 14, color: '#dc2626', fillColor: '#dc2626',
+    weight: 3, fillOpacity: 0.9
+  }).addTo(map);
+
+  // Aggiungi cerchio "pulse" esterno
+  const pulseOuter = L.circleMarker(ll, {
+    radius: 22, color: '#dc2626', fillColor: 'transparent',
+    weight: 2, fillOpacity: 0, opacity: 0.5
+  }).addTo(map);
+
+  const popup = `
+    <b style="color:#dc2626">⚠ Vertice Anomalo — ${objKey}</b><br>
+    ${pts.length} vert${pts.length>1?'ici':'ice'} in questo oggetto<br><br>
+    <b>Valore nel file XML (GB):</b><br>
+    N = ${firstPt.n}&nbsp;&nbsp; E = ${firstPt.e}<br><br>
+    ${conv.isGeo
+      ? `<span style="color:#f87171">Sembrano coordinate geografiche decimali (gradi)<br>
+         inserite erroneamente come Gauss-Boaga.<br>
+         WGS84 reale del punto: Lat≈${ll[0].toFixed(4)}°, Lon≈${ll[1].toFixed(4)}°</span>`
+      : `WGS84 convertito: Lat=${ll[0].toFixed(5)}°, Lon=${ll[1].toFixed(5)}°`
+    }
+  `;
+  pulse.bindPopup(popup);
+  pulseOuter.bindPopup(popup);
+
+  outlierMarkers.push(pulse, pulseOuter);
+
+  // Poligono tratteggiato che rappresenta l'oggetto anomalo (fake bbox)
+  if (clusterLL) {
+    const distMeters = Math.sqrt((conv.calcN - nMed)**2 + (conv.calcE - eMed)**2);
+    const distText = distMeters > 1000 ? (distMeters/1000).toFixed(1) + ' km' : Math.round(distMeters) + ' m';
+    
+    const polyLL = L.polyline([ll, clusterLL], {
+      color: '#fbbf24', weight: 2, dashArray: '6,5', opacity: 0.6
+    }).addTo(map);
+    
+    // Etichetta fissa (Tooltip permanente) al centro della linea
+    const midpoint = [(ll[0] + clusterLL[0])/2, (ll[1] + clusterLL[1])/2];
+    L.tooltip({
+        permanent: true,
+        direction: 'center',
+        className: 'dist-label'
+    })
+    .setContent(distText)
+    .setLatLng(midpoint)
+    .addTo(map);
+
+    outlierMarkers.push(polyLL);
+  }
+});
+
+// ─── Sidebar: lista oggetti anomali ──────────────────────────────────────
+const listEl = document.getElementById('outlierList');
+Object.entries(objMap).forEach(([objKey, pts], i) => {
+  const fp = pts[0];
+  const conv = smartConvert(fp.n, fp.e);
+  const div = document.createElement('div');
+  div.className = 'obj-row';
+  div.innerHTML = `
+    <div class="obj-key"><i class="fas fa-location-dot"></i> ${objKey} — ${pts.length} vert${pts.length>1?'ici':'ice'}</div>
+    <div class="obj-coords">N = ${fp.n.toFixed(3)} &nbsp;|&nbsp; E = ${fp.e.toFixed(3)}</div>
+    ${conv && conv.isGeo ? `<div class="obj-dist" style="color:#fbbf24;"><i class="fas fa-exclamation-circle"></i> Sembra lat/lon in gradi → errore sistema di riferimento</div>` : ''}
+  `;
+  div.onclick = () => {
+    if (conv) {
+      map.setView(conv.ll, 8);
+      if (outlierMarkers[i*3]) outlierMarkers[i*3].openPopup();
+      showToast(`Oggetto ${objKey}`, `Vertice anomalo centrato sulla mappa`);
+    }
+  };
+  listEl.appendChild(div);
+});
+
+// ─── Vista iniziale ───────────────────────────────────────────────────────
+if (clusterLL) {
+  map.setView(clusterLL, 14);
+} else if (outlierLLs.length > 0) {
+  map.setView(outlierLLs[0], 8);
+} else {
+  map.setView([42, 12], 6);
+}
+
+// ─── Funzioni navigazione ─────────────────────────────────────────────────
+function goToCluster() {
+  if (!clusterLL) return showToast('Cluster', 'Nessun dato cluster disponibile.');
+  map.setView(clusterLL, 16);
+  if (clusterMarker) clusterMarker.openPopup();
+  showToast('Cluster Corretto', `GB: N=${nMed.toFixed(0)}, E=${eMed.toFixed(0)}\nZona rilievo corretto — scala ~1:${Math.round(scaleOk).toLocaleString('it-IT')}`);
+}
+
+function goToOutlier() {
+  if (!outlierLLs.length) return;
+  map.setView(outlierLLs[0], 7);
+  showToast('Punto Anomalo', 'Questa è la posizione reale del vertice con le coordinate errate!');
+}
+
+function fitAll() {
+  const all = [...outlierLLs];
+  if (clusterLL) all.push(clusterLL);
+  if (all.length < 2) return;
+  const bounds = L.latLngBounds(all);
+  map.fitBounds(bounds, { padding: [50, 50] });
+  showToast('Vista Globale', `Bounding box totale: ΔN=${document.getElementById('st-dn').textContent}, ΔE=${document.getElementById('st-de').textContent}\nEcco perché la scala PDF diventa ${document.getElementById('st-scale').textContent}!`);
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(title, body) {
+  const el = document.getElementById('toast');
+  document.getElementById('toast-title').textContent = title;
+  document.getElementById('toast-body').textContent  = body;
+  el.classList.add('visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('visible'), 5000);
+}
+
+// Toast iniziale
+setTimeout(() => showToast('Mappa Diagnostica Pronta',
+  'Clicca "Vista globale" per vedere l\'impatto dell\'outlier sulla scala PDF.'), 900);
+
+if (DEMO_MODE) {
+  setTimeout(() => showToast('Modalità Demo',
+    'Nessun parametro ricevuto — mostro dati di esempio del file D3_193930_02599130651.xml'), 3500);
+}
+</script>
+</body>
+</html>
