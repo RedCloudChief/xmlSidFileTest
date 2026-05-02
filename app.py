@@ -38,8 +38,9 @@ def login_action():
     
     user = db.get_user_by_email(email)
     if user and check_password_hash(user['password_hash'], password):
-        session['pre_2fa_user_id'] = user['id']
-        return redirect(url_for('login_page', require_2fa='true'))
+        session.permanent = True
+        session['user_id'] = user['id']
+        return redirect(url_for('index'))
     else:
         return redirect(url_for('login_page', error='Credenziali non valide.'))
 
