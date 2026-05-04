@@ -212,8 +212,12 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
         cx, cy = (xmin + xmax) / 2, (ymin + ymax) / 2
         
         # We want the objects to fit in the specified viewport (W x H) in the PDF.
-        # Minimal safety margin (3% for A3 to maximize zoom, 7% for A4)
-        margin = 1.03 if page_format == 'A3' else 1.07
+        # Minimal safety margin (A3: 3%, A4: 7%, Clean Map: 2%)
+        if not show_labels:
+            margin = 1.02
+        else:
+            margin = 1.03 if page_format == 'A3' else 1.07
+
         paper_w_m = target_width_mm / 1000.0
         paper_h_m = (target_height_mm / 1000.0) if target_height_mm else paper_w_m
         
@@ -407,12 +411,19 @@ def generate_planimetry_image(objects, fuoriuscite=None, dpi=150, target_width_m
                 bbox=dict(boxstyle='round,pad=0.25', facecolor='white', alpha=0.95, edgecolor='#1a1a3e', linewidth=1.5))
 
         # Absolute maximum maximization of the grid area
-        fig.subplots_adjust(left=0.03, right=0.97, top=0.97, bottom=0.03)
+        if not show_labels:
+            # Ultra-tight margins for clean maps
+            fig.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.01)
+            pad_val = 0.01
+        else:
+            fig.subplots_adjust(left=0.03, right=0.97, top=0.97, bottom=0.03)
+            pad_val = 0.05
 
         fd, tmp = tempfile.mkstemp(suffix='.png')
         os.close(fd)
-        fig.savefig(tmp, dpi=dpi, bbox_inches='tight', pad_inches=0.05,
+        fig.savefig(tmp, dpi=dpi, bbox_inches='tight', pad_inches=pad_val,
                     facecolor=fig.get_facecolor())
+
         
         plt.close(fig)
         with open(tmp, 'rb') as f:

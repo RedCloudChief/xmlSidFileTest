@@ -23,9 +23,17 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT NOT NULL,
             cognome TEXT NOT NULL,
-            email TEXT NOT NULL UNIQUE,
+            email TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             totp_secret TEXT,
+            data_nascita TEXT,
+            luogo_nascita TEXT,
+            codice_fiscale TEXT,
+            partita_iva TEXT,
+            indirizzo TEXT,
+            cap TEXT,
+            citta TEXT,
+            provincia TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -57,3 +65,22 @@ def get_user_by_id(user_id):
     user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
     conn.close()
     return user
+
+def update_user(user_id, nome, cognome, email, data_nascita=None, luogo_nascita=None, codice_fiscale=None, partita_iva=None, indirizzo=None, cap=None, citta=None, provincia=None):
+    conn = get_db_connection()
+    try:
+        conn.execute(
+            '''UPDATE users SET 
+               nome = ?, cognome = ?, email = ?, 
+               data_nascita = ?, luogo_nascita = ?, codice_fiscale = ?, 
+               partita_iva = ?, indirizzo = ?, cap = ?, 
+               citta = ?, provincia = ? 
+               WHERE id = ?''',
+            (nome, cognome, email, data_nascita, luogo_nascita, codice_fiscale, partita_iva, indirizzo, cap, citta, provincia, user_id)
+        )
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()

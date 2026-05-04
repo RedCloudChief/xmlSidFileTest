@@ -10,7 +10,7 @@ import urllib.parse
 
 app = Flask(__name__, static_folder='.')
 app.secret_key = 'geo-d1-super-secret-key-premium' # In produzione dovrebbe essere una variabile d'ambiente
-app.permanent_session_lifetime = timedelta(minutes=3)
+app.permanent_session_lifetime = timedelta(hours=1)
 
 # Inizializza il DB all'avvio
 with app.app_context():
@@ -18,7 +18,9 @@ with app.app_context():
 
 @app.route('/')
 def index():
-    if 'user_id' not in session:
+    user_id = session.get('user_id')
+    if not user_id or not db.get_user_by_id(user_id):
+        session.pop('user_id', None)
         return redirect(url_for('login_page'))
     resp = send_from_directory('.', 'index.html')
     resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
@@ -27,7 +29,8 @@ def index():
 
 @app.route('/login')
 def login_page():
-    if 'user_id' in session:
+    user_id = session.get('user_id')
+    if user_id and db.get_user_by_id(user_id):
         return redirect(url_for('index'))
     return send_from_directory('.', 'login.html')
 
@@ -38,8 +41,9 @@ def login_action():
     
     user = db.get_user_by_email(email)
     if user and check_password_hash(user['password_hash'], password):
-        session['pre_2fa_user_id'] = user['id']
-        return redirect(url_for('login_page', require_2fa='true'))
+        session.permanent = True
+        session['user_id'] = user['id']
+        return redirect(url_for('index'))
     else:
         return redirect(url_for('login_page', error='Credenziali non valide.'))
 
@@ -100,8 +104,11 @@ def serve_static(path):
         return "Access Denied: File type not allowed", 403
         
     # Blocca i file HTML se non loggato, eccetto login.html
-    if path_lower.endswith('.html') and 'user_id' not in session and path_lower != 'login.html':
-        return redirect(url_for('login_page'))
+    if path_lower.endswith('.html') and path_lower != 'login.html':
+        user_id = session.get('user_id')
+        if not user_id or not db.get_user_by_id(user_id):
+            session.pop('user_id', None)
+            return redirect(url_for('login_page'))
         
     resp = send_from_directory('.', path)
     resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
@@ -165,8 +172,54 @@ def api_user():
         return {"error": "Unauthorized"}, 401
     user = db.get_user_by_id(session['user_id'])
     if user:
-        return {"nome": user['nome'], "cognome": user['cognome'], "email": user['email']}
+        user_dict = dict(user)
+        return {
+            "nome": user_dict.get('nome'), 
+            "cognome": user_dict.get('cognome'), 
+            "email": user_dict.get('email'),
+            "data_nascita": user_dict.get('data_nascita'),
+            "luogo_nascita": user_dict.get('luogo_nascita'),
+            "codice_fiscale": user_dict.get('codice_fiscale'),
+            "partita_iva": user_dict.get('partita_iva'),
+            "indirizzo": user_dict.get('indirizzo'),
+            "cap": user_dict.get('cap'),
+            "citta": user_dict.get('citta'),
+            "provincia": user_dict.get('provincia')
+        }
     return {"error": "Not found"}, 404
+
+@app.route('/api/user/update', methods=['POST'])
+def api_user_update():
+    if 'user_id' not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    data = request.json
+    nome = data.get('nome')
+    cognome = data.get('cognome')
+    email = data.get('email')
+    
+    # New fields
+    data_nascita = data.get('data_nascita')
+    luogo_nascita = data.get('luogo_nascita')
+    codice_fiscale = data.get('codice_fiscale')
+    partita_iva = data.get('partita_iva')
+    indirizzo = data.get('indirizzo')
+    cap = data.get('cap')
+    citta = data.get('citta')
+    provincia = data.get('provincia')
+    
+    if not nome or not cognome or not email or not codice_fiscale:
+        return {"error": "Nome, Cognome, Email e Codice Fiscale sono obbligatori"}, 400
+        
+    success = db.update_user(
+        session['user_id'], nome, cognome, email,
+        data_nascita, luogo_nascita, codice_fiscale, partita_iva,
+        indirizzo, cap, citta, provincia
+    )
+    if success:
+        return {"status": "success"}
+    else:
+        return {"error": "Errore durante l'aggiornamento o email già presente"}, 500
 
 @app.route('/api/analyze', methods=['POST'])
 def api_analyze():

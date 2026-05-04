@@ -334,14 +334,13 @@
                     &copy; 2026 Nuvola Rossa • v2.0 Premium
                 </div>
 
-                <div id="userProfile" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.03); border: 1px solid var(--glass-border); border-radius: 8px; margin-top: 1rem;">
+                <div id="userProfile" onclick="openProfileModal()" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.03); border: 1px solid var(--glass-border); border-radius: 8px; margin-top: 1rem;" title="Gestisci Profilo">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem;" id="userInitials">
-                            <i class="fas fa-user"></i>
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem; flex-shrink: 0;" id="userInitials">
+                            <i class="fas fa-user-gear"></i>
                         </div>
-                        <div>
-                            <div style="font-weight: 700; font-size: 0.8rem; color: var(--text-primary);" id="userNameDisplay">Caricamento...</div>
-                            <div style="font-size: 0.65rem; color: var(--text-secondary);" id="userEmailDisplay">...</div>
+                        <div style="min-width: 0; flex: 1; display: flex; align-items: center;">
+                            <div style="font-weight: 700; font-size: 0.8rem; color: var(--text-primary);" id="userNameDisplay" class="text-truncate">Caricamento...</div>
                         </div>
                     </div>
                     <a href="/logout" class="btn-mini" style="color: var(--accent-rose); text-decoration: none; padding: 6px; border-radius: 6px; background: rgba(244, 63, 94, 0.1);" title="Logout">
@@ -459,42 +458,145 @@
         </div>
     </div>
 
-    <!-- Modal per Opzioni Esportazione PDF -->
+    <!-- Modal Configurazione Esportazione PDF -->
     <div id="exportModal" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-content" style="max-width: 450px;">
             <div class="modal-header">
                 <div class="modal-icon-container">
                     <div class="modal-icon-pulse"></div>
                     <i class="fas fa-file-export"></i>
                 </div>
                 <div class="modal-title-group">
-                    <div class="modal-badge">Configurazione Report</div>
-                    <h2 class="modal-title">Opzioni di Stampa</h2>
+                    <div class="modal-badge">Esportazione</div>
+                    <h2 class="modal-title">Configura Report PDF</h2>
                 </div>
                 <button class="modal-close" onclick="document.getElementById('exportModal').style.display='none'">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            
-            <div class="modal-body">
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">Seleziona lo stile della planimetria da includere nel report di diagnosi:</p>
+            <div class="modal-body" style="padding: 1.5rem 2rem;">
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.5;">
+                    Seleziona come vuoi visualizzare la planimetria nel report tecnico.
+                </p>
                 
-                <div class="export-options-grid">
-                    <div class="export-card" onclick="confirmPdfExport(true)">
-                        <div class="card-icon"><i class="fas fa-tags"></i></div>
-                        <div class="card-title">Report Completo</div>
-                        <div class="card-desc">Include etichette degli oggetti e legenda tecnica. Ideale per consultazione.</div>
+                <div class="export-config-card" onclick="confirmPdfExport(false)" style="cursor: pointer; border: 1px solid var(--glass-border); padding: 1.25rem; border-radius: 16px; transition: all 0.2s;">
+                    <div style="display: flex; align-items: center; gap: 1.25rem;">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(99, 102, 241, 0.1); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.25rem;">
+                            <i class="fas fa-map"></i>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 800; font-size: 1rem; color: var(--text-primary);">Mappa Pulita</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">Esporta solo le geometrie senza etichette di testo</div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color: var(--glass-border);"></i>
                     </div>
-                    <div class="export-card" onclick="confirmPdfExport(false)">
-                        <div class="card-icon"><i class="fas fa-eye-slash"></i></div>
-                        <div class="card-title">Mappa Pulita</div>
-                        <div class="card-desc">Senza etichette degli oggetti e senza legenda</div>
+                </div>
+
+                <div class="export-config-card" onclick="confirmPdfExport(true)" style="cursor: pointer; border: 1px solid var(--glass-border); padding: 1.25rem; border-radius: 16px; margin-top: 1rem; transition: all 0.2s;">
+                    <div style="display: flex; align-items: center; gap: 1.25rem;">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(99, 102, 241, 0.1); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.25rem;">
+                            <i class="fas fa-tags"></i>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 800; font-size: 1rem; color: var(--text-primary);">Mappa con Etichette</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">Include nomi oggetti e riferimenti testuali</div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color: var(--glass-border);"></i>
                     </div>
                 </div>
             </div>
+            <div class="modal-footer" style="background: #f8fafc; border-top: 1px solid var(--glass-border); padding: 1rem 2rem;">
+                <button class="btn-modal btn-modal-secondary" style="width: 100%; justify-content: center;" onclick="document.getElementById('exportModal').style.display='none'">
+                    Annulla
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal per Profilo Utente -->
+    <div id="profileModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header">
+                <div class="modal-icon-container">
+                    <div class="modal-icon-pulse"></div>
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="modal-title-group">
+                    <div class="modal-badge">Account Utente</div>
+                    <h2 class="modal-title">Il Tuo Profilo</h2>
+                </div>
+                <button class="modal-close" onclick="document.getElementById('profileModal').style.display='none'">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
             
-            <div class="modal-footer" style="justify-content: center;">
-                <button class="btn-modal btn-modal-secondary" onclick="document.getElementById('exportModal').style.display='none'">Annulla</button>
+            <div class="modal-body">
+                <form id="profileForm" class="profile-form" onsubmit="saveProfile(event)">
+                    <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem;">
+                        <div class="profile-input-group">
+                            <label for="prof-nome">Nome</label>
+                            <input type="text" id="prof-nome" class="profile-input" required>
+                        </div>
+                        <div class="profile-input-group">
+                            <label for="prof-cognome">Cognome</label>
+                            <input type="text" id="prof-cognome" class="profile-input" required>
+                        </div>
+                        <div class="profile-input-group">
+                            <label for="prof-data-nascita">Data di Nascita</label>
+                            <input type="date" id="prof-data-nascita" class="profile-input">
+                        </div>
+                        <div class="profile-input-group">
+                            <label for="prof-luogo-nascita">Luogo di Nascita</label>
+                            <input type="text" id="prof-luogo-nascita" class="profile-input">
+                        </div>
+                        <div class="profile-input-group">
+                            <label for="prof-codice-fiscale">Codice Fiscale *</label>
+                            <input type="text" id="prof-codice-fiscale" class="profile-input" required maxlength="16" style="text-transform: uppercase;">
+                        </div>
+                        <div class="profile-input-group">
+                            <label for="prof-partita-iva">Partita IVA</label>
+                            <input type="text" id="prof-partita-iva" class="profile-input" maxlength="11">
+                        </div>
+                    </div>
+                    
+                    <div class="profile-input-group">
+                        <label for="prof-email">Email / Username</label>
+                        <input type="email" id="prof-email" class="profile-input" required>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--glass-border); padding-top: 1rem; margin-top: 0.5rem;">
+                        <h4 style="font-size: 0.7rem; text-transform: uppercase; color: var(--primary); margin-bottom: 0.75rem;">Residenza</h4>
+                        <div class="profile-input-group" style="margin-bottom: 1rem;">
+                            <label for="prof-indirizzo">Indirizzo</label>
+                            <input type="text" id="prof-indirizzo" class="profile-input" placeholder="Via/Piazza, Civico">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 80px 1fr 60px; gap: 0.75rem;">
+                            <div class="profile-input-group">
+                                <label for="prof-cap">CAP</label>
+                                <input type="text" id="prof-cap" class="profile-input" maxlength="5">
+                            </div>
+                            <div class="profile-input-group">
+                                <label for="prof-citta">Città</label>
+                                <input type="text" id="prof-citta" class="profile-input">
+                            </div>
+                            <div class="profile-input-group">
+                                <label for="prof-provincia">Prov.</label>
+                                <input type="text" id="prof-provincia" class="profile-input" maxlength="2" style="text-transform: uppercase;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="profileMessage" style="display: none; padding: 10px; border-radius: 8px; font-size: 0.8rem; margin-top: 0.5rem;"></div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn-modal btn-modal-secondary" onclick="document.getElementById('profileModal').style.display='none'">
+                            <i class="fas fa-times"></i> Annulla
+                        </button>
+                        <button type="submit" class="btn-modal btn-modal-primary">
+                            <i class="fas fa-save"></i> Salva Modifiche
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -1940,8 +2042,8 @@ document.getElementById('toggleAllBtn').onclick = () => {
             .then(data => {
                 if (data.nome) {
                     document.getElementById('userNameDisplay').textContent = `${data.nome} ${data.cognome}`;
-                    document.getElementById('userEmailDisplay').textContent = data.email;
-                    document.getElementById('userInitials').textContent = (data.nome[0] + data.cognome[0]).toUpperCase();
+                    const initials = ((data.nome ? data.nome[0] : '') + (data.cognome ? data.cognome[0] : '')).toUpperCase();
+                    document.getElementById('userInitials').textContent = initials || '?';
                 }
             })
             .catch(err => console.error("Error fetching user data:", err));
@@ -1975,6 +2077,91 @@ document.getElementById('toggleAllBtn').onclick = () => {
             document.onclick = resetTimer;
             document.onscroll = resetTimer;
         })();
+
+        // --- Profile Management ---
+        async function openProfileModal() {
+            try {
+                const res = await fetch('/api/user');
+                const data = await res.json();
+                if (data.nome) {
+                    document.getElementById('prof-nome').value = data.nome || '';
+                    document.getElementById('prof-cognome').value = data.cognome || '';
+                    document.getElementById('prof-email').value = data.email || '';
+                    document.getElementById('prof-data-nascita').value = data.data_nascita || '';
+                    document.getElementById('prof-luogo-nascita').value = data.luogo_nascita || '';
+                    document.getElementById('prof-codice-fiscale').value = data.codice_fiscale || '';
+                    document.getElementById('prof-partita-iva').value = data.partita_iva || '';
+                    document.getElementById('prof-indirizzo').value = data.indirizzo || '';
+                    document.getElementById('prof-cap').value = data.cap || '';
+                    document.getElementById('prof-citta').value = data.citta || '';
+                    document.getElementById('prof-provincia').value = data.provincia || '';
+                    
+                    document.getElementById('profileMessage').style.display = 'none';
+                    document.getElementById('profileModal').style.display = 'flex';
+                }
+            } catch (err) {
+                console.error("Errore caricamento profilo:", err);
+            }
+        }
+
+        async function saveProfile(e) {
+            e.preventDefault();
+            const msg = document.getElementById('profileMessage');
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvataggio...';
+            btn.disabled = true;
+            
+            const payload = {
+                nome: document.getElementById('prof-nome').value,
+                cognome: document.getElementById('prof-cognome').value,
+                email: document.getElementById('prof-email').value,
+                data_nascita: document.getElementById('prof-data-nascita').value,
+                luogo_nascita: document.getElementById('prof-luogo-nascita').value,
+                codice_fiscale: document.getElementById('prof-codice-fiscale').value.toUpperCase(),
+                partita_iva: document.getElementById('prof-partita-iva').value,
+                indirizzo: document.getElementById('prof-indirizzo').value,
+                cap: document.getElementById('prof-cap').value,
+                citta: document.getElementById('prof-citta').value,
+                provincia: document.getElementById('prof-provincia').value.toUpperCase()
+            };
+
+            try {
+                const res = await fetch('/api/user/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    msg.textContent = "Profilo aggiornato con successo!";
+                    msg.style.background = "rgba(16, 185, 129, 0.1)";
+                    msg.style.color = "#10b981";
+                    msg.style.display = 'block';
+                    
+                    // Update sidebar UI
+                    document.getElementById('userNameDisplay').textContent = `${payload.nome} ${payload.cognome}`;
+                    const initials = ((payload.nome ? payload.nome[0] : '') + (payload.cognome ? payload.cognome[0] : '')).toUpperCase();
+                    document.getElementById('userInitials').textContent = initials || '?';
+
+                    setTimeout(() => {
+                        document.getElementById('profileModal').style.display = 'none';
+                    }, 1500);
+                } else {
+                    throw new Error(data.error || "Errore sconosciuto");
+                }
+            } catch (err) {
+                msg.textContent = err.message;
+                msg.style.background = "rgba(244, 63, 94, 0.1)";
+                msg.style.color = "#f43f5e";
+                msg.style.display = 'block';
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
     </script>
 
     <!-- Diag Map Overlay -->
